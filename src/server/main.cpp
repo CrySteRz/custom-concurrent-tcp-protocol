@@ -11,14 +11,12 @@ struct ServerState
     std::mutex                                      pending_connections_mtx;
 
     std::vector<std::unique_ptr<ConnectionWrapper>> active_connections;
-
-    std::stack<ConnectionBuffer> completed_packets;
-    ThreadPool                   thread_pool;
+    std::stack<ConnectionBuffer>                    completed_packets;
+    ThreadPool                                      thread_pool;
 };
 
 void handle_packets(ServerState& state)
 {
-    //Pseudocode atm, needs the thread_pool implementation
     while(!state.completed_packets.empty())
     {
         auto p = std::make_shared<ConnectionBuffer>(state.completed_packets.top());

@@ -2,22 +2,38 @@
 
 #include <cstdint>
 
-enum PacketType : uint8_t //Ensure this is one byte
+enum ClientRequestPacket : uint8_t //Ensure this is one byte
 {
-    FILES_TRANSFER_START
-    , FILE_TRANSFER_CHUNK
-    , FILE_TRANSFER_END
-    , CRC_VERIFY
-    , SERVER_STATUS
-    , GET_SETTINGS
-    , SET_SETTING
+    REQ_FILES_TRANSFER_START
+    , REQ_FILE_TRANSFER_CHUNK
+    , REQ_FILE_TRANSFER_END
+    , REQ_CRC_VERIFY
+    , REQ_SERVER_STATUS
+    , REQ_GET_SETTINGS
+    , REQ_SET_SETTING
 };
 
-struct Protocol
+enum ServerResponse : uint8_t
 {
-    uint8_t    version;
-    PacketType command;
-    uint16_t   total_size;
+    RESP_OK
+    , RESP_CRC_FAILED
+    , RESP_SERVER_STATUS_RESPONSE
+};
+
+struct ServerProtocol
+{
+    uint8_t             version;
+    ClientRequestPacket req_type;
+    uint16_t            total_size;
+    uint8_t             buffer[UINT16_MAX - sizeof(uint16_t) - sizeof(uint8_t) - sizeof(ClientRequestPacket)];
+};
+
+struct ClientProtocol
+{
+    uint8_t        version;
+    ServerResponse resp_type;
+    uint16_t       total_size;
+    uint8_t        buffer[UINT16_MAX - sizeof(uint16_t) - sizeof(uint8_t) - sizeof(ClientRequestPacket)];
 };
 
 struct ConnectionWrapper
@@ -31,9 +47,9 @@ struct ConnectionWrapper
 
 struct ConnectionBuffer
 {
-    PacketType get_packet_type()
+    ClientRequestPacket get_packet_type()
     {
-        return (PacketType)connection->buffer[1];
+        return (ClientRequestPacket)connection->buffer[1];
     }
     ConnectionWrapper* connection;
     uint8_t            buffer[UINT16_MAX];
