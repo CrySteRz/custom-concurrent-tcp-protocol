@@ -1,18 +1,35 @@
 #include "protocol.hpp"
+#include "thread_pool.hpp"
+#include "client_controller.hpp"
 #include <memory>
 #include <stack>
 #include <vector>
 
-void handle_packets()
+struct ServerState
+{
+    std::vector<std::unique_ptr<ConnectionWrapper>> pending_connections;
+    std::mutex                                      pending_connections_mtx;
+
+    std::vector<std::unique_ptr<ConnectionWrapper>> active_connections;
+
+    std::stack<ConnectionBuffer> completed_packets;
+    ThreadPool                   thread_pool;
+};
+
+void handle_packets(ServerState& state)
 {
     //Pseudocode atm, needs the thread_pool implementation
-    //for(auto p : completed_packets)
-    //{
-    //thread_pool.dispatch_async([p]()
-    //{
-    //ClientController::process_packet(p);
-    //})
-    //}
+    while(!state.completed_packets.empty())
+    {
+        auto p = std::make_shared<ConnectionBuffer>(state.completed_packets.top());
+
+        state.thread_pool.dispatch_async([p]()
+        {
+            ClientController::process_packet(p);
+        });
+
+        state.completed_packets.pop();
+    }
 }
 
 //Pseudocode atm, needs other stuff
@@ -32,15 +49,9 @@ void handle_packets()
 //cand un packet e completed e mutat pe stack-ul de completed_packets
 //recieving thread o sa ruleze pe vectorul de active_connections (async) si cand e cazul sa fie unul gata
 //se pune in completed_packets
-struct ServerState
-{
-    std::vector<std::unique_ptr<ConnectionWrapper>> pending_connections;
-    std::mutex                                      pending_connections_mtx;
 
-    std::vector<std::unique_ptr<ConnectionWrapper>> active_connections;
-
-    std::stack<ConnectionBuffer> completed_packets;
-};
 
 int main()
-{}
+{
+    ClientController::initialize();
+}

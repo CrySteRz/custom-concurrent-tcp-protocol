@@ -1,3 +1,5 @@
+#pragma once
+
 #include <cstdint>
 
 enum PacketType : uint8_t //Ensure this is one byte

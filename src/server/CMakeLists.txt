@@ -1,4 +1,4 @@
-add_executable(server main.cpp)
+add_executable(server main.cpp client_controller.cpp)
 target_link_libraries(server PRIVATE common)
 target_include_directories(server PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../common)
 
