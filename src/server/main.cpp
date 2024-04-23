@@ -1,29 +1,40 @@
-#include "protocol.hpp"
-#include <cstddef>
+#include <atomic>
+#include <cerrno>
+#include <cstdio>
 #include <cstring>
-#include <fcntl.h>
-#include "thread_pool.hpp"
-#include "cstring"
-#include "client_controller.hpp"
+#include <csignal>
 #include <cstdint>
 #include <memory>
-#include <netinet/in.h>
-
+#include <mutex>
 #include <stack>
 #include <vector>
+
+#include <fcntl.h>
+#include <netinet/in.h>
+
+#include "protocol.hpp"
+#include "thread_pool.hpp"
+#include "client_controller.hpp"
 
 #define PORT    1312
 #define BACKLOG UINT16_MAX
 
 struct ServerState
 {
-    std::vector<std::unique_ptr<ConnectionWrapper>> pending_connections;
-    std::mutex                                      pending_connections_mtx;
+    using TPendingConnections = std::stack<std::shared_ptr<ConnectionWrapper>, std::vector<std::shared_ptr<ConnectionWrapper>>>;
 
-    std::vector<std::unique_ptr<ConnectionWrapper>> active_connections;
-    std::stack<ConnectionBuffer>                    completed_packets;
+    TPendingConnections pending_connections;
+    std::mutex          pending_connections_mtx;
+
+    std::vector<std::shared_ptr<ConnectionWrapper>> active_connections;
+    std::stack<std::shared_ptr<ConnectionBuffer>>   completed_packets;
     ThreadPool                                      thread_pool;
+
+    std::atomic_bool b_should_run     = true;
+    std::atomic_int  server_socket_fd = -1;
 };
+
+static ServerState g_state;
 
 void make_socket_non_blocking(int socket_fd)
 {
@@ -34,23 +45,22 @@ void make_socket_non_blocking(int socket_fd)
     }
 }
 
-void handle_packets(ServerState& state)
+void handle_packets()
 {
-    while(!state.completed_packets.empty())
+    while(!g_state.completed_packets.empty())
     {
-        auto p = std::make_shared<ConnectionBuffer>(state.completed_packets.top());
+        auto& p = g_state.completed_packets.top();
 
-        state.thread_pool.dispatch_async([p]()
+        g_state.thread_pool.dispatch_async([_p = std::move(p)]()
         {
-            ClientController::process_packet(p);
+            ClientController::process_packet(std::move(_p));
         });
 
-        state.completed_packets.pop();
+        g_state.completed_packets.pop();
     }
 }
 
-//Pseudocode atm, needs other stuff
-void accept_thread_handler(ServerState& state)
+void accept_thread_handler()
 {
     int server_socket_fd;
     if((server_socket_fd = socket(AF_INET, SOCK_STREAM, 0)) == 0)
@@ -74,6 +84,7 @@ void accept_thread_handler(ServerState& state)
         perror("listen");
         exit(EXIT_FAILURE);
     }
+    g_state.server_socket_fd.exchange(server_socket_fd);
 
     while(true)
     {
@@ -83,59 +94,123 @@ void accept_thread_handler(ServerState& state)
             break;
         }
         make_socket_non_blocking(client_socket_fd);
-        auto cw = std::make_unique<ConnectionWrapper>(client_socket_fd);
-        state.active_connections.emplace_back(std::move(cw));
+        auto cw = std::make_shared<ConnectionWrapper>(client_socket_fd);
+        {
+            std::lock_guard guard{g_state.pending_connections_mtx};
+            g_state.pending_connections.push(std::move(cw));
+        }
     }
 }
 
-void recieve_all_connections(ServerState& state)
+void recieve_all_connections()
 {
-    for(size_t idx = 0; idx != state.active_connections.size(); idx++)
+    for(auto it = g_state.active_connections.begin(); it != g_state.active_connections.end(); ++it)
     {
-        auto&   connection = state.active_connections[idx];
+        auto& connection = *it;
+
         ssize_t bytes_read = recv(connection->socket_fd, connection->buffer + connection->buffer_pos
-                , sizeof(connection->buffer), 0);
-        connection->buffer_pos += bytes_read;
-        if(bytes_read < 0)
+                , sizeof(connection->buffer) - connection->buffer_pos, 0);
+
+        if(bytes_read == -1)
         {
-            state.active_connections.erase(state.active_connections.begin() + idx);
+            if((errno == EAGAIN) || (errno == EWOULDBLOCK))
+            {
+                continue;
+            }
+            perror("lost connection");
+            it = g_state.active_connections.erase(it);
+            if(it == g_state.active_connections.end())
+            {
+                break;
+            }
+        }
+
+        connection->buffer_pos += bytes_read;
+
+        if(connection->buffer_pos < 4)
+        {
             continue;
         }
-        //EOF
-        if(bytes_read == 0)
+
+        auto packet_size = *reinterpret_cast<const uint16_t*>(connection->buffer + 2);
+
+        while(true)
         {
-            ConnectionBuffer packet;
-            packet.connection = connection.get();
-            memcpy(packet.buffer, connection->buffer, sizeof(packet.buffer));
-            //Shouldn't be needed but whatever
-            memset(connection->buffer, 0, sizeof(connection->buffer));
-            state.completed_packets.push(packet);
-            continue;
+            if(connection->buffer_pos >= packet_size)
+            {
+                auto packet = std::make_shared<ConnectionBuffer>();
+                packet->connection = connection.get();
+                memcpy(packet->buffer, connection->buffer, packet_size);
+                g_state.completed_packets.push(std::move(packet));
+            }
+
+            const auto delta = connection->buffer_pos - packet_size;
+
+            if(delta == 0)
+            {
+                connection->buffer_pos = 0;
+                break;
+            }
+
+            memmove(connection->buffer, connection->buffer + connection->buffer_pos, delta);
+            connection->buffer_pos = delta;
+
+            packet_size = *reinterpret_cast<const uint16_t*>(connection->buffer + 2);
+
+            if(delta < packet_size)
+            {
+                break;
+            }
         }
     }
 }
 
-//O sa fie un thread care doar accepta conexiuni, de aia avem nevoie de mutex, cand o conexiune e acceptata
-//se baga pe active_connections.
-//cand un packet e completed e mutat pe stack-ul de completed_packets
-//recieving thread o sa ruleze pe vectorul de active_connections (async) si cand e cazul sa fie unul gata
-//se pune in completed_packets
-
-void server_thread(ServerState& state)
+void handle_pending_connections()
 {
-    for(;;)
+    std::lock_guard guard{g_state.pending_connections_mtx};
+
+    while(!g_state.pending_connections.empty())
+    {
+        auto& conn = g_state.pending_connections.top();
+
+        g_state.active_connections.emplace_back(std::move(conn));
+
+        g_state.pending_connections.pop();
+    }
+}
+
+void server_thread()
+{
+    for(; g_state.b_should_run.load(std::memory_order::relaxed);)
     {
         //Needs to be ran on a sepparate thread because of while(true)
-        accept_thread_handler(state);
+        recieve_all_connections();
+        handle_packets();
+        handle_pending_connections();
+    }
+}
 
-        recieve_all_connections(state);
-        handle_packets(state);
-        //handle_pending_connections(state);
+void TerminationRequestHandler(int32_t signal)
+{
+    if(g_state.b_should_run.exchange(false))
+    {
+        const auto s = g_state.server_socket_fd.exchange(-1);
+        if(s > 0)
+        {
+            close(s);
+        }
     }
 }
 
 int main()
 {
+    (void)::signal(SIGINT, &TerminationRequestHandler);  //Interrupt signal (CTRL + C)
+    (void)::signal(SIGTERM, &TerminationRequestHandler); //Termination request
+
     ClientController::initialize();
 
+    g_state.thread_pool.start(6);
+    auto accept_thread = std::jthread(accept_thread_handler);
+
+    server_thread();
 }

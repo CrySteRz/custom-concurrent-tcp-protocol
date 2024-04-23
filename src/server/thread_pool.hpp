@@ -16,6 +16,9 @@ public:
         start(thread_count);
     }
 
+    ThreadPool()
+    {}
+
     ~ThreadPool()
     {
         stop();
@@ -30,14 +33,6 @@ public:
         }
         condition.notify_one();
     }
-
-private:
-    std::vector<std::thread>          workers;
-    std::queue<std::function<void()>> tasks;
-
-    std::mutex              queueMutex;
-    std::condition_variable condition;
-    std::atomic<bool>       stopFlag = false;
 
     void start(size_t numThreads)
     {
@@ -84,4 +79,12 @@ private:
             thread.join();
         }
     }
+
+private:
+    std::vector<std::thread>          workers;
+    std::queue<std::function<void()>> tasks;
+
+    std::mutex              queueMutex;
+    std::condition_variable condition;
+    std::atomic<bool>       stopFlag = false;
 };
