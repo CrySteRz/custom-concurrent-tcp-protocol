@@ -5,25 +5,25 @@ std::function<void(std::shared_ptr<ConnectionBuffer>)> ClientController::handler
 
 void ClientController::initialize()
 {
-    handlers[SERVER_STATUS] = [](std::shared_ptr<ConnectionBuffer> cb)
+    handlers[REQ_SERVER_STATUS] = [](std::shared_ptr<ConnectionBuffer> cb)
         {};
 
-    handlers[CRC_VERIFY] = [](std::shared_ptr<ConnectionBuffer> cb)
+    handlers[REQ_CRC_VERIFY] = [](std::shared_ptr<ConnectionBuffer> cb)
         {};
 
-    handlers[FILES_TRANSFER_START] = [](std::shared_ptr<ConnectionBuffer> cb)
+    handlers[REQ_FILES_TRANSFER_START] = [](std::shared_ptr<ConnectionBuffer> cb)
         {};
 
-    handlers[FILE_TRANSFER_CHUNK] = [](std::shared_ptr<ConnectionBuffer> cb)
+    handlers[REQ_FILE_TRANSFER_CHUNK] = [](std::shared_ptr<ConnectionBuffer> cb)
         {};
 
-    handlers[FILE_TRANSFER_END] = [](std::shared_ptr<ConnectionBuffer> cb)
+    handlers[REQ_FILE_TRANSFER_END] = [](std::shared_ptr<ConnectionBuffer> cb)
         {};
 
-    handlers[GET_SETTINGS] = [](std::shared_ptr<ConnectionBuffer> cb)
+    handlers[REQ_GET_SETTINGS] = [](std::shared_ptr<ConnectionBuffer> cb)
         {};
 
-    handlers[SET_SETTING] = [](std::shared_ptr<ConnectionBuffer> cb)
+    handlers[REQ_SET_SETTING] = [](std::shared_ptr<ConnectionBuffer> cb)
         {};
 
 
