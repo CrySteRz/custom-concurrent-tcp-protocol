@@ -1,0 +1,22 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "gdb",
+            "request": "launch",
+            "name": "Launch Program",
+            "target": "${workspaceRoot}/build/client",
+            "cwd": "${workspaceRoot}/build",
+            "valuesFormatting": "parseText"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Client",
+            "program": "${workspaceFolder}/build/client",
+            "args": [],
+            "cwd": "${workspaceFolder}/build"
+        }
+    ],
+    "compounds": []
+}
