@@ -1,4 +1,7 @@
+#include "memory.h"
+#include "packets.hpp"
 #include "protocol.hpp"
+#include "utils.hpp"
 #include <arpa/inet.h>
 #include <cstdint>
 #include <netinet/in.h>
@@ -15,8 +18,8 @@
 int main() {
   int sock;
   struct sockaddr_in server_addr;
-  char receive_buffer[BUFFER_SIZE];
-  char send_buffer[BUFFER_SIZE] = {0};
+  uint8_t receive_buffer[BUFFER_SIZE] = {0};
+  uint8_t send_buffer[BUFFER_SIZE] = {0};
   sock = socket(AF_INET, SOCK_STREAM, 0);
   if (sock == -1) {
     perror("socket");
@@ -37,13 +40,12 @@ int main() {
   while (1) {
     printf(">>> ");
     scanf("%s", send_buffer);
-    ServerProtocol packet;
-    packet.req_type = ClientRequestPacket::REQ_SERVER_STATUS;
-    packet.version = 0;
-    packet.total_size = 4;
-    send_buffer[1] = packet.req_type;
-    send_buffer[2] = packet.total_size;
-    printf("packetsize %d", (uint16_t)(send_buffer[2]));
+    Packet packet;
+    packet.header.command = PacketType::REQ_SERVER_STATUS;
+    packet.header.version = 0;
+    packet.header.total_size = 4;
+    memcpy(send_buffer, &packet.header, sizeof(PacketHeader));
+    printf("packetsize %d", *(uint16_t *)(send_buffer + 2));
 
     if (send(sock, send_buffer, 8, 0) == -1) {
       perror("send");
@@ -52,18 +54,13 @@ int main() {
 
     // Instead of overwriting the entire buffer we only null terminate after the
     // read bytes
-    int read_bytes = recv(sock, receive_buffer, 3, 0);
-    if (read_bytes < 1) {
-      perror("recv");
-      break;
-    }
-    receive_buffer[read_bytes] = 0;
+    recv_from_server(sock, receive_buffer, sizeof(receive_buffer));
+    // receive_buffer[read_bytes] = 0;
+    const ServerStatusPacket &resp =
+        *reinterpret_cast<ServerStatusPacket *>(receive_buffer);
 
-    printf("::: %s :::\n", receive_buffer);
-
-    if (strcmp(send_buffer, "exit") == 0) {
-      break;
-    }
+    printf("packet_size: %d cpu:%d mem:%f uptime:%ld", resp.header.total_size,
+           resp.cpu_usage, resp.memory_info.total_memory, resp.uptime_seconds);
   }
 
   close(sock);
