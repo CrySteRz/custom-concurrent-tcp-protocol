@@ -41,28 +41,28 @@ int main()
         return EXIT_FAILURE;
     }
 
-    while(1)
-    {
-        printf(">>> ");
-        scanf("%s", input);
-        uint16_t   send_buffer_size;
-        PacketType response_packet_type;
-        auto       resp = Menu::parse_command(input, send_buffer);
-        send_buffer_size     = resp.first;
-        response_packet_type = resp.second;
+    while (1) {
+        try {
+            printf(">>> ");
+            scanf("%s", input);
+            uint16_t send_buffer_size;
+            PacketType response_packet_type;
+            auto resp = Menu::parse_command(input, send_buffer);
+            send_buffer_size = resp.first;
+            response_packet_type = resp.second;
 
-        if(send(sock, send_buffer, send_buffer_size, 0) == -1)
-        {
-            perror("send");
-            break;
+            if (send(sock, send_buffer, send_buffer_size, 0) == -1) {
+                perror("send");
+                break;
+            }
+            
+            recv_from_server(sock, receive_buffer, sizeof(receive_buffer));
+            Menu::handle_response_packet(receive_buffer);
+        } catch (const std::runtime_error& e) {
+            std::cerr << "Error: " << e.what() << std::endl;
         }
-
-        recv_from_server(sock, receive_buffer, sizeof(receive_buffer));
-        Menu::handle_response_packet(receive_buffer);
-
     }
 
     close(sock);
-
     return EXIT_SUCCESS;
 }

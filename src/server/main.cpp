@@ -128,13 +128,13 @@ void receive_all_connections() {
 
       if (bytes_read == -1) {
          if ((errno == EAGAIN) || (errno == EWOULDBLOCK)) {
-            ++it; // Only increment here if no erasing occurs
+            ++it;
             continue;
          }
          perror("lost connection");
          close(connection -> socket_fd);
-         it = g_state.active_connections.erase(it); // Update iterator here
-         if (it == g_state.active_connections.end()) break; // Check if the end is reached
+         it = g_state.active_connections.erase(it); 
+         if (it == g_state.active_connections.end()) break; 
          continue;
       } else if (bytes_read == 0) {
          close(connection -> socket_fd);
@@ -146,7 +146,7 @@ void receive_all_connections() {
       connection -> buffer_pos += bytes_read;
 
       if (connection -> buffer_pos < 4) {
-         ++it; // Only increment here if no erasing occurs
+         ++it; 
          continue;
       }
 
@@ -179,7 +179,7 @@ void receive_all_connections() {
       }
 
       if (it != g_state.active_connections.end()) {
-         ++it; // Only increment here if no erasing occurs
+         ++it;
       }
       
    }
@@ -201,7 +201,6 @@ void handle_pending_connections() {
 
 void server_thread() {
    for (; g_state.b_should_run.load(std::memory_order::relaxed);) {
-      // Needs to be ran on a sepparate thread because of while(true)
       receive_all_connections();
       handle_packets();
       handle_pending_connections();
@@ -227,7 +226,6 @@ int main() {
    (void)::signal(SIGKILL, & TerminationRequestHandler);
 
    ClientController::initialize();
-
    g_state.thread_pool.start(6);
    auto accept_thread = std::jthread(accept_thread_handler);
 
