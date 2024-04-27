@@ -23,6 +23,7 @@ public:
             PacketController::create_server_status_packet(buffer);
             return std::make_pair(4, PacketType::RESP_SERVER_STATUS_RESPONSE);
         }
+        return std::make_pair(0, PacketType::RESP_OK);
     }
 
     static void handle_response_packet(uint8_t* buffer)

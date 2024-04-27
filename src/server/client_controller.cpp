@@ -20,7 +20,6 @@ void ClientController::initialize() {
         p.cpu_usage = ServerInfo::get_cpu_usage_percentage();
         p.memory_info = ServerInfo::get_memory_usage();
         p.uptime_seconds = ServerInfo::get_system_uptime_seconds();
-
         cb->connection->send_response_sync(tls_buffer,
                                            sizeof(ServerStatusPacket));
       });
