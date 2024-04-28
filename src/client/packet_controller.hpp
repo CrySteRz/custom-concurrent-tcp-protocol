@@ -18,10 +18,22 @@ public:
         memcpy(buffer, &packet.header, sizeof(PacketHeader));
         return packet.header.total_size;
     }
+    static uint16_t create_authenticate_packet(uint8_t* buffer, const char* username, const char* password)
+    {
+        Packet packet;
+        packet.header.command    = PacketType::REQ_AUTHENTICATE;
+        packet.header.version    = 0;
+        packet.header.total_size = 4 + strlen(username) + strlen(password);
+        memcpy(buffer, &packet.header, sizeof(PacketHeader));
+        memcpy(buffer + sizeof(PacketHeader), username, strlen(username));
+        memcpy(buffer + sizeof(PacketHeader) + strlen(username), password, strlen(password));
+        return packet.header.total_size;
+    }
+
     static uint16_t create_transfer_packet(uint8_t* buffer, const char* path)
     {
         Packet packet;
-        packet.header.command    = PacketType::REQ_FILES_TRANSFER_START;
+        packet.header.command    = PacketType::REQ_FILE_TRANSFER_START;
         packet.header.version    = 0;
         packet.header.total_size = 4;
         memcpy(buffer, &packet.header, sizeof(PacketHeader));

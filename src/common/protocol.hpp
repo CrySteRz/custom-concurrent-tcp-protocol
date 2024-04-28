@@ -8,16 +8,24 @@
 
 enum class PacketType : uint8_t // Ensure this is one byte
 {
-  REQ_FILES_TRANSFER_START,
+  REQ_AUTHENTICATE,
+  REQ_FILE_TRANSFER_START,
   REQ_FILE_TRANSFER_CHUNK,
   REQ_FILE_TRANSFER_END,
   REQ_CRC_VERIFY,
   REQ_SERVER_STATUS,
   REQ_GET_SETTINGS,
-  REQ_SET_SETTING,
+  RESP_AUTHENTICATE,
   RESP_OK,
+  RESP_ERROR,
+  RESP_GET_SETTINGS,
+  RESP_SERVER_STATUS_RESPONSE,
+  RESP_FILE_TRANSFER_START,
+  RESP_FILE_TRANSFER_CHUNK,
+  RESP_FILE_TRANSFER_END,
   RESP_CRC_FAILED,
-  RESP_SERVER_STATUS_RESPONSE
+  RESP_CRC_OK,
+
 };
 
 struct PacketHeader {
@@ -36,7 +44,6 @@ struct ConnectionWrapper {
   uint8_t buffer[UINT16_MAX];
   uint16_t buffer_pos;
   bool is_admin;
-  uint32_t id; // Just in case
 
   void send_response_sync(uint8_t *buffer, size_t length) {
     int sent_bytes = 0;

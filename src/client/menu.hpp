@@ -10,6 +10,7 @@
 #include <sstream>
 #include <vector>
 #include <string>
+#include <optional>
 namespace fs = std::filesystem;
 class Menu
 {
@@ -37,7 +38,7 @@ static void transfer_file(const fs::path& file_path, uint8_t* buffer) {
         }
     }
 
-    static std::pair<uint16_t, PacketType> parse_command(const char* input, uint8_t* buffer) {
+    static std::optional<std::pair<uint16_t, PacketType>> parse_command(const char* input, uint8_t* buffer) {
         std::string command(input);
         std::istringstream iss(command);
         std::string token;
@@ -62,10 +63,10 @@ static void transfer_file(const fs::path& file_path, uint8_t* buffer) {
                     }
                 }
             }
-        } else {
+        }else {
             iss.clear();
         }
-        return std::make_pair(0, PacketType::RESP_OK);
+        return {};
     }
 
 
@@ -90,6 +91,5 @@ static void transfer_file(const fs::path& file_path, uint8_t* buffer) {
             break;
         }
     }
-}
-
+    }
 };

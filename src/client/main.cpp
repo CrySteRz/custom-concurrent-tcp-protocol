@@ -41,23 +41,52 @@ int main()
         return EXIT_FAILURE;
     }
 
+    bool is_authenticated = false;
+    char username[32];
+    char password[32];
+    printf("Enter username: ");
+    scanf("%s", username);
+    printf("Enter password: ");
+    scanf("%s", password);
+    uint16_t send_buffer_size = PacketController::create_authenticate_packet(send_buffer, username, password);
+    if (send(sock, send_buffer, send_buffer_size, 0) == -1) {
+        perror("send");
+        return EXIT_FAILURE;
+    }
+    recv_from_server(sock, receive_buffer, sizeof(receive_buffer));
+    const PacketHeader& header = *reinterpret_cast<PacketHeader*>(receive_buffer);
+    if (header.command == PacketType::RESP_AUTHENTICATE) {
+       const AuthenticateResponsePacket& resp = *reinterpret_cast<AuthenticateResponsePacket*>(receive_buffer);
+        if (resp.status){
+            is_authenticated = true;
+            std::cout << "Authentication successful." << std::endl;
+        } else {
+            std::cerr << "Authentication failed." << std::endl;
+            return EXIT_FAILURE;
+        }
+
+    } else {
+        std::cerr << "Authentication failed." << std::endl;
+        return EXIT_FAILURE;
+    }
+    
     while (1) {
         try {
-            printf(">>> ");
+            if (!is_authenticated) {
+                std::cerr << "Not authenticated." << std::endl;
+            }else {
+                printf(">>> ");
             scanf("%s", input);
             uint16_t send_buffer_size;
             PacketType response_packet_type;
             auto resp = Menu::parse_command(input, send_buffer);
-            send_buffer_size = resp.first;
-            response_packet_type = resp.second;
-
             if (send(sock, send_buffer, send_buffer_size, 0) == -1) {
                 perror("send");
                 break;
             }
-            
             recv_from_server(sock, receive_buffer, sizeof(receive_buffer));
             Menu::handle_response_packet(receive_buffer);
+            }
         } catch (const std::runtime_error& e) {
             std::cerr << "Error: " << e.what() << std::endl;
         }

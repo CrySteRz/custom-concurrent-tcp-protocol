@@ -9,6 +9,16 @@ struct ServerStatusPacket {
   long uptime_seconds;
 };
 
+struct AuthenticatePacket {
+  PacketHeader header;
+  uint16_t username_length;
+  uint16_t password_length;
+};
+
+struct AuthenticateResponsePacket {
+  PacketHeader header;
+  bool status;
+};
 // struct DirectoryCreationPacket {
 //   PacketHeader header;
 //   uint16_t path_length;
