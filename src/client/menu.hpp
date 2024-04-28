@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
+#include <optional>
 #include <utility>
 class Menu
 {
@@ -16,13 +17,15 @@ public:
 
     //Applied what the user wants to the send buffer and returns it's size for the
     //send command
-    static std::pair<uint16_t, PacketType> parse_command(const char* input, uint8_t* buffer)
+    static std::optional<std::pair<uint16_t, PacketType>> parse_command(const char* input, uint8_t* buffer)
     {
         if(strcmp(input, "status") == 0)
         {
             PacketController::create_server_status_packet(buffer);
             return std::make_pair(4, PacketType::RESP_SERVER_STATUS_RESPONSE);
         }
+
+        return {};
     }
 
     static void handle_response_packet(uint8_t* buffer)

@@ -48,8 +48,13 @@ int main()
         uint16_t   send_buffer_size;
         PacketType response_packet_type;
         auto       resp = Menu::parse_command(input, send_buffer);
-        send_buffer_size     = resp.first;
-        response_packet_type = resp.second;
+        if(!resp.has_value())
+        {
+            printf("%s isn't a valid command\n", input);
+            continue;
+        }
+        send_buffer_size     = resp.value().first;
+        response_packet_type = resp.value().second;
 
         if(send(sock, send_buffer, send_buffer_size, 0) == -1)
         {

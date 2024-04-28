@@ -29,7 +29,9 @@ void ClientController::initialize() {
       [](std::shared_ptr<ConnectionBuffer> cb) {};
 
   handlers[(int)PacketType::REQ_FILES_TRANSFER_START] =
-      [](std::shared_ptr<ConnectionBuffer> cb) {};
+      [](std::shared_ptr<ConnectionBuffer> cb) {
+        
+      };
 
   handlers[(int)PacketType::REQ_FILE_TRANSFER_CHUNK] =
       [](std::shared_ptr<ConnectionBuffer> cb) {};
