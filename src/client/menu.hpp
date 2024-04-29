@@ -38,12 +38,15 @@ static void transfer_file(const fs::path& file_path, uint8_t* buffer) {
         }
     }
 
+    
+
     static std::optional<std::pair<uint16_t, PacketType>> parse_command(const char* input, uint8_t* buffer) {
         std::string command(input);
         std::istringstream iss(command);
         std::string token;
         iss >> token; // Iau primul cuvant (commands) ca sa putem parsa path-urile apoi
         if (token == "status") {
+            std::cout << "Getting server status." << std::endl;
             PacketController::create_server_status_packet(buffer);
             return std::make_pair(4, PacketType::RESP_SERVER_STATUS_RESPONSE);
         } else if (token == "transfer") {
@@ -69,7 +72,10 @@ static void transfer_file(const fs::path& file_path, uint8_t* buffer) {
         return {};
     }
 
-
+    static std::pair <uint16_t, PacketType> authentication(char* username, char* password, uint8_t* buffer) {
+        PacketController::create_authenticate_packet(buffer, username, password);
+        return std::make_pair(4 + strlen(username) + strlen(password), PacketType::REQ_AUTHENTICATE);
+    }
 
     static void handle_response_packet(uint8_t* buffer)
 {

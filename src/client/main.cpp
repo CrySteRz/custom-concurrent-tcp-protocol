@@ -60,8 +60,12 @@ int main()
         if (resp.status){
             is_authenticated = true;
             std::cout << "Authentication successful." << std::endl;
+            //clear buffer
+            memset(receive_buffer, 0, sizeof(receive_buffer));
+
         } else {
-            std::cerr << "Authentication failed." << std::endl;
+            std::cerr << "Authentication failed. Bube" << std::endl;
+            memset(receive_buffer, 0, sizeof(receive_buffer));
             return EXIT_FAILURE;
         }
 
@@ -70,12 +74,9 @@ int main()
         return EXIT_FAILURE;
     }
     
-    while (1) {
+    while (is_authenticated) {
         try {
-            if (!is_authenticated) {
-                std::cerr << "Not authenticated." << std::endl;
-            }else {
-                printf(">>> ");
+            printf(">>> ");
             scanf("%s", input);
             uint16_t send_buffer_size;
             PacketType response_packet_type;
@@ -86,7 +87,6 @@ int main()
             }
             recv_from_server(sock, receive_buffer, sizeof(receive_buffer));
             Menu::handle_response_packet(receive_buffer);
-            }
         } catch (const std::runtime_error& e) {
             std::cerr << "Error: " << e.what() << std::endl;
         }

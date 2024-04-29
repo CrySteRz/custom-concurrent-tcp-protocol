@@ -10,9 +10,9 @@ struct ServerStatusPacket {
 };
 
 struct AuthenticatePacket {
-  PacketHeader header;
-  uint16_t username_length;
-  uint16_t password_length;
+    PacketHeader header;
+    char username[32];
+    char password[32];
 };
 
 struct AuthenticateResponsePacket {

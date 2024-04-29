@@ -2,6 +2,8 @@
 #include "packets.hpp"
 #include "protocol.hpp"
 #include "server_info.hpp"
+#include "authenticate.hpp"
+#include <iostream>
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
@@ -14,16 +16,18 @@ std::function<void(std::shared_ptr<ConnectionBuffer>)>
 void ClientController::initialize() {
 
     set_handler<PacketType::REQ_AUTHENTICATE>(
-        [](std::shared_ptr<ConnectionBuffer> cb) {
-            auto &p = *reinterpret_cast<AuthenticatePacket *>(tls_buffer);
-            p.header.command = PacketType::RESP_AUTHENTICATE;
-            p.header.total_size = sizeof(AuthenticatePacket);
-            cb->connection->send_response_sync(tls_buffer,
-                                             sizeof(AuthenticatePacket));
-        });
-        
+    [](std::shared_ptr<ConnectionBuffer> cb) {
+        auto &p = *reinterpret_cast<AuthenticatePacket *>(cb->buffer);  // Use the connection buffer directly, daca folosesc tls_buffer nu merge
+        auto &response = *reinterpret_cast<AuthenticateResponsePacket *>(tls_buffer);
+        response.header.command = PacketType::RESP_AUTHENTICATE;
+        response.header.total_size = sizeof(AuthenticateResponsePacket);
+        response.status = Authenticate::login(p.username, p.password);  
+        cb->connection->send_response_sync(tls_buffer, sizeof(AuthenticateResponsePacket));
+    });
+
   set_handler<PacketType::REQ_SERVER_STATUS>(
       [](std::shared_ptr<ConnectionBuffer> cb) {
+        std::cout << "Received REQ_SERVER_STATUS" << std::endl;
         auto &p = *reinterpret_cast<ServerStatusPacket *>(tls_buffer);
         p.header.command = PacketType::RESP_SERVER_STATUS_RESPONSE;
         p.header.total_size = sizeof(ServerStatusPacket);
