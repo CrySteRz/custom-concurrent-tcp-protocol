@@ -17,10 +17,13 @@ enum class PacketType : uint8_t //Ensure this is one byte
     , REQ_SERVER_STATUS
     , REQ_GET_SETTINGS
     , REQ_SET_SETTING
+    , REQ_LOGIN
     , RESP_CONTINUE
+    , RESP_OK
     , RESP_CRC_FAILED
     , RESP_SERVER_STATUS_RESPONSE
     , RESP_FILE_TRANSFER_OK
+    , RESP_REQUIRES_ADMIN
 };
 
 struct PacketHeader
@@ -88,6 +91,11 @@ struct ConnectionBuffer
 {
     PacketType get_packet_type()
     {
+        //Avoid crash when PacketType is invalid
+        if((connection->buffer[1] < 0) || (connection->buffer[1] > (int)PacketType::RESP_SERVER_STATUS_RESPONSE))
+        {
+            return PacketType::REQ_SET_SETTING;
+        }
         return (PacketType)connection->buffer[1];
     }
     ConnectionWrapper* connection;

@@ -33,3 +33,10 @@ struct PacketTransferFileEnd
     PacketHeader header;
     uint8_t      file_data[UINT16_MAX - sizeof(PacketHeader)];
 };
+
+struct PacketLogin
+{
+    PacketHeader header;
+    char         username[64];
+    char         password[64];
+};
