@@ -13,10 +13,10 @@
 std::function<void(std::shared_ptr<ConnectionBuffer>)>
 ClientController::handlers[UINT8_MAX + 1];
 
-void send_resp_continue(std::shared_ptr<ConnectionBuffer> cb, uint8_t* buffer)
+void send_resp_continue(std::shared_ptr<ConnectionBuffer> cb, uint8_t* buffer, PacketType packet_type)
 {
     auto& p = *reinterpret_cast<SamplePacket*>(buffer);
-    p.header.command    = PacketType::RESP_CONTINUE;
+    p.header.command    = packet_type;
     p.header.total_size = sizeof(SamplePacket);
     cb->connection->send_response_sync(buffer
         , sizeof(SamplePacket));
@@ -49,15 +49,14 @@ void ClientController::initialize()
             char working_dir[255], file_path[255];
             sprintf(working_dir, "./tmp/%d", cb->connection->id);
             auto packet = *reinterpret_cast<PacketTransferFileStart*>(cb->buffer);
-            puts(working_dir);
             sprintf(file_path, "%s/%s", working_dir, packet.file_name);
-            mkdir(working_dir, 0777);
+            mkdir(working_dir, 0700);
 
-            int file = open(file_path, O_CREAT);
+            int file = open(file_path, O_RDWR | O_CREAT, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
 
             cb->connection->fd = file;
 
-            send_resp_continue(cb, tls_buffer);
+            send_resp_continue(cb, tls_buffer, PacketType::RESP_CONTINUE);
         };
 
     handlers[(int)PacketType::REQ_FILE_TRANSFER_CHUNK]
@@ -67,7 +66,7 @@ void ClientController::initialize()
 
             write(cb->connection->fd, in_packet.file_data, in_packet.header.total_size - sizeof(PacketHeader));
 
-            send_resp_continue(cb, tls_buffer);
+            send_resp_continue(cb, tls_buffer, PacketType::RESP_CONTINUE);
         };
 
     handlers[(int)PacketType::REQ_FILE_TRANSFER_END]
@@ -77,13 +76,7 @@ void ClientController::initialize()
 
             write(cb->connection->fd, in_packet.file_data, in_packet.header.total_size - sizeof(PacketHeader));
 
-            std::cout << "REQ_FILE_TRANSFER_END" << std::endl;
-
-            auto& p = *reinterpret_cast<SamplePacket*>(tls_buffer);
-            p.header.command    = PacketType::RESP_CONTINUE;
-            p.header.total_size = sizeof(SamplePacket);
-            cb->connection->send_response_sync(tls_buffer
-                , sizeof(SamplePacket));
+            send_resp_continue(cb, tls_buffer, PacketType::RESP_FILE_TRANSFER_OK);
         };
 
     handlers[(int)PacketType::REQ_GET_SETTINGS]
