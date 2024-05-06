@@ -73,6 +73,10 @@ public:
                     , resp.cpu_usage, resp.memory_info.total_memory, resp.uptime_seconds);
                 break;
             }
+            case PacketType::RESP_CONTINUE:
+            {
+                break;
+            }
             default:
             {
                 fprintf(stderr, "UNHANDLED RESPONSE PACKET\n");

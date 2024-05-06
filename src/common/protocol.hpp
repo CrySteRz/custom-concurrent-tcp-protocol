@@ -1,8 +1,10 @@
 #pragma once
 
+#include <dirent.h>
 #include <cerrno>
 #include <cstdint>
 #include <cstdio>
+#include <filesystem>
 #include <sys/socket.h>
 #include <thread>
 
@@ -39,7 +41,20 @@ struct ConnectionWrapper
     uint8_t  buffer[UINT16_MAX];
     uint16_t buffer_pos;
     bool     is_admin;
+    int      fd = 0;
     uint32_t id; //Just in case
+
+    //~ConnectionWrapper()
+    //{
+    //close(fd);
+    //char* dir_path;
+    //sprintf(dir_path, "./tmp/%d", id);
+    //DIR* dir = opendir(dir_path);
+    //if(dir)
+    //{
+    //std::filesystem::remove_all(dir_path);
+    //}
+    //}
 
     void send_response_sync(uint8_t* buffer, size_t length)
     {
@@ -76,4 +91,5 @@ struct ConnectionBuffer
     }
     ConnectionWrapper* connection;
     uint8_t            buffer[UINT16_MAX];
+
 };

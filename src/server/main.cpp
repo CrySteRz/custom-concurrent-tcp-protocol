@@ -2,6 +2,8 @@
 #include <cerrno>
 #include <chrono>
 #include <csignal>
+#include <sys/stat.h>
+#include <sys/types.h>
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
@@ -103,6 +105,7 @@ void accept_thread_handler()
         }
         make_socket_non_blocking(client_socket_fd);
         auto cw = std::make_shared<ConnectionWrapper>(client_socket_fd);
+        cw->id = rand();
         {
             std::lock_guard guard{g_state.pending_connections_mtx};
             g_state.pending_connections.push(std::move(cw));
@@ -245,6 +248,8 @@ int main()
     (void)::signal(SIGTERM, &TerminationRequestHandler); //Termination request
     (void)::signal(SIGKILL, &TerminationRequestHandler);
 
+    mkdir("./tmp", 0777);
+    srand((unsigned)time(0));
     ClientController::initialize();
 
     g_state.thread_pool.start(6);
