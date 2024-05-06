@@ -4,6 +4,7 @@
 #include "server_info.hpp"
 #include <cstdint>
 #include <cstdio>
+#include <cstring>
 #include <fcntl.h>
 #include <memory>
 #include <sys/socket.h>
@@ -13,7 +14,17 @@
 std::function<void(std::shared_ptr<ConnectionBuffer>)>
 ClientController::handlers[UINT8_MAX + 1];
 
-void send_resp_continue(std::shared_ptr<ConnectionBuffer> cb, uint8_t* buffer, PacketType packet_type)
+void send_resp_unauthorized(std::shared_ptr<ConnectionBuffer> cb, uint8_t* buffer)
+{
+    auto& p = *reinterpret_cast<SamplePacket*>(buffer);
+    p.header.command    = PacketType::RESP_REQUIRES_ADMIN;
+    p.header.total_size = sizeof(SamplePacket);
+    cb->connection->send_response_sync(buffer
+        , sizeof(SamplePacket));
+
+}
+
+void send_sample_resp(std::shared_ptr<ConnectionBuffer> cb, uint8_t* buffer, PacketType packet_type)
 {
     auto& p = *reinterpret_cast<SamplePacket*>(buffer);
     p.header.command    = packet_type;
@@ -22,18 +33,28 @@ void send_resp_continue(std::shared_ptr<ConnectionBuffer> cb, uint8_t* buffer, P
         , sizeof(SamplePacket));
 }
 
+void create_server_status_packet(uint8_t* buffer)
+{
+    auto& p = *reinterpret_cast<ServerStatusPacket*>(buffer);
+    p.header.command    = PacketType::RESP_SERVER_STATUS_RESPONSE;
+    p.header.total_size = sizeof(ServerStatusPacket);
+    p.cpu_usage         = ServerInfo::get_cpu_usage_percentage();
+    p.memory_info       = ServerInfo::get_memory_usage();
+    p.uptime_seconds    = ServerInfo::get_system_uptime_seconds();
+}
 
 void ClientController::initialize()
 {
     set_handler<PacketType::REQ_SERVER_STATUS>(
         [](std::shared_ptr<ConnectionBuffer> cb)
     {
-        auto& p             = *reinterpret_cast<ServerStatusPacket*>(tls_buffer);
-        p.header.command    = PacketType::RESP_SERVER_STATUS_RESPONSE;
-        p.header.total_size = sizeof(ServerStatusPacket);
-        p.cpu_usage         = ServerInfo::get_cpu_usage_percentage();
-        p.memory_info       = ServerInfo::get_memory_usage();
-        p.uptime_seconds    = ServerInfo::get_system_uptime_seconds();
+        if(!cb->connection->is_admin)
+        {
+            send_resp_unauthorized(cb, tls_buffer);
+            return;
+        }
+
+        create_server_status_packet(tls_buffer);
 
         cb->connection->send_response_sync(tls_buffer
         , sizeof(ServerStatusPacket));
@@ -56,7 +77,7 @@ void ClientController::initialize()
 
             cb->connection->fd = file;
 
-            send_resp_continue(cb, tls_buffer, PacketType::RESP_CONTINUE);
+            send_sample_resp(cb, tls_buffer, PacketType::RESP_CONTINUE);
         };
 
     handlers[(int)PacketType::REQ_FILE_TRANSFER_CHUNK]
@@ -66,7 +87,7 @@ void ClientController::initialize()
 
             write(cb->connection->fd, in_packet.file_data, in_packet.header.total_size - sizeof(PacketHeader));
 
-            send_resp_continue(cb, tls_buffer, PacketType::RESP_CONTINUE);
+            send_sample_resp(cb, tls_buffer, PacketType::RESP_CONTINUE);
         };
 
     handlers[(int)PacketType::REQ_FILE_TRANSFER_END]
@@ -76,7 +97,7 @@ void ClientController::initialize()
 
             write(cb->connection->fd, in_packet.file_data, in_packet.header.total_size - sizeof(PacketHeader));
 
-            send_resp_continue(cb, tls_buffer, PacketType::RESP_FILE_TRANSFER_OK);
+            send_sample_resp(cb, tls_buffer, PacketType::RESP_FILE_TRANSFER_OK);
         };
 
     handlers[(int)PacketType::REQ_GET_SETTINGS]
@@ -86,6 +107,21 @@ void ClientController::initialize()
     handlers[(int)PacketType::REQ_SET_SETTING]
         = [](std::shared_ptr<ConnectionBuffer> cb)
         {};
+
+    handlers[(int)PacketType::REQ_LOGIN]
+        = [](std::shared_ptr<ConnectionBuffer> cb)
+        {
+            auto& in_packet = *reinterpret_cast<PacketLogin*>(cb->buffer);
+            //TODO: Implement proper auth
+            if((strncmp(in_packet.username, "admin", 5) != 0) || (strncmp(in_packet.password, "admin", 5) != 0))
+            {
+                send_resp_unauthorized(cb, tls_buffer);
+                return;
+            }
+
+            cb->connection->is_admin = true;
+            send_sample_resp(cb, tls_buffer, PacketType::RESP_OK);
+        };
 }
 
 void ClientController::process_packet(std::shared_ptr<ConnectionBuffer> cb)

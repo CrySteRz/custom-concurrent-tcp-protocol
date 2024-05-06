@@ -62,6 +62,17 @@ public:
         return packet;
     }
 
+    static Packet create_login_packet(const char* username, const char* password)
+    {
+        Packet p;
+        p.header.command = PacketType::REQ_LOGIN;
+        PacketLogin* p2 = reinterpret_cast<PacketLogin*>(&p);
+        p.header.total_size = sizeof(PacketHeader) + sizeof(p2->password) + sizeof(p2->username);
+        strcpy(p2->username, username);
+        strcpy(p2->password, password);
+        return p;
+    }
+
     static std::vector<Packet> create_file_transfer_packets(const char* file_path, uint16_t chunk_size)
     {
         auto file_content = read_entire_file(file_path);

@@ -42,6 +42,17 @@ public:
             return std::vector<Packet>{packet};
         }
 
+        if(strncmp(input, "login", 5) == 0)
+        {
+            char* username;
+            char* password;
+
+            username = strtok((char*)input + 6, " ");
+            password = strtok(NULL, " ");
+
+            return std::vector<Packet>{PacketController::create_login_packet(username, password)};
+        }
+
         if(strncmp(input, "send", 4) == 0)
         {
             auto file_paths = extract_file_paths(input + 4);
@@ -80,13 +91,27 @@ public:
             case PacketType::RESP_FILE_TRANSFER_OK:
             {
                 printf("File transfer was ok!\n");
-                break;
             }
+            break;
+
+            case PacketType::RESP_OK:
+            {
+                printf("Command was succesful\n");
+            }
+            break;
+
+            case PacketType::RESP_REQUIRES_ADMIN:
+            {
+                printf("The server requires admin for that command, please login using the login command\n");
+            }
+            break;
+
             default:
             {
                 fprintf(stderr, "UNHANDLED RESPONSE PACKET\n");
-                break;
             }
+            break;
+
         }
     }
 };

@@ -52,7 +52,6 @@ int main()
             printf("%s isn't a valid command\n", input);
             continue;
         }
-        std::cout << resp.value().size() << std::endl;
 
         for(auto& packet : resp.value())
         {
@@ -62,8 +61,8 @@ int main()
                 break;
             }
 
-
             recv_from_server(sock, receive_buffer, sizeof(receive_buffer));
+
             Menu::handle_response_packet(receive_buffer);
         }
     }
