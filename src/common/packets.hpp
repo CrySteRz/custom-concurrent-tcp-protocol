@@ -10,16 +10,26 @@ struct ServerStatusPacket
     long         uptime_seconds;
 };
 
-struct FileInfo
-{
-    char     file_name[32];
-    uint16_t file_size;
-    uint8_t  hash[16];
-};
-
-struct FilesStartPacket
+struct SamplePacket
 {
     PacketHeader header;
-    uint8_t      file_count;
-    FileInfo     file_info;
+};
+
+struct PacketTransferFileStart
+{
+    PacketHeader header;
+    uint8_t      hash[16];
+    char         file_name[255];
+};
+
+struct PacketTransferFileChunk
+{
+    PacketHeader header;
+    uint8_t      file_data[UINT16_MAX - sizeof(PacketHeader)];
+};
+
+struct PacketTransferFileEnd
+{
+    PacketHeader header;
+    uint8_t      file_data[UINT16_MAX - sizeof(PacketHeader)];
 };

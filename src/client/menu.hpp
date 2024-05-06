@@ -6,6 +6,22 @@
 #include <cstring>
 #include <optional>
 #include <utility>
+
+inline std::vector<const char*> extract_file_paths(const char* input)
+{
+    std::vector<const char*> file_paths;
+    const char*              delimiter = " ";
+    const char*              token     = std::strtok(const_cast<char*>(input), delimiter);
+
+    while(token != nullptr)
+    {
+        file_paths.push_back(token);
+        token = std::strtok(nullptr, delimiter);
+    }
+
+    return file_paths;
+}
+
 class Menu
 {
     enum Command : uint8_t
@@ -17,12 +33,28 @@ public:
 
     //Applied what the user wants to the send buffer and returns it's size for the
     //send command
-    static std::optional<std::pair<uint16_t, PacketType>> parse_command(const char* input, uint8_t* buffer)
+    static std::optional<std::vector<Packet>> parse_command_to_packets(char* input)
     {
-        if(strcmp(input, "status") == 0)
+        if(strncmp(input, "status", 6) == 0)
         {
-            PacketController::create_server_status_packet(buffer);
-            return std::make_pair(4, PacketType::RESP_SERVER_STATUS_RESPONSE);
+            auto packet = PacketController::create_server_status_packet();
+
+            return std::vector<Packet>{packet};
+        }
+
+        if(strncmp(input, "send", 4) == 0)
+        {
+            auto file_paths = extract_file_paths(input + 4);
+
+            std::vector<Packet> packets;
+
+            for(auto path : file_paths)
+            {
+                auto file_packets = PacketController::create_file_transfer_packets(path, UINT16_MAX - sizeof(PacketHeader));
+                packets.insert(packets.end(), file_packets.begin(), file_packets.end());
+            }
+
+            return packets;
         }
 
         return {};

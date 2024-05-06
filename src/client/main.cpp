@@ -44,27 +44,28 @@ int main()
     while(1)
     {
         printf(">>> ");
-        scanf("%s", input);
-        uint16_t   send_buffer_size;
-        PacketType response_packet_type;
-        auto       resp = Menu::parse_command(input, send_buffer);
+        scanf("%2047[^\n]%*c", input);
+        auto resp = Menu::parse_command_to_packets(input);
+
         if(!resp.has_value())
         {
             printf("%s isn't a valid command\n", input);
             continue;
         }
-        send_buffer_size     = resp.value().first;
-        response_packet_type = resp.value().second;
+        std::cout << resp.value().size() << std::endl;
 
-        if(send(sock, send_buffer, send_buffer_size, 0) == -1)
+        for(auto& packet : resp.value())
         {
-            perror("send");
-            break;
+            if(send(sock, &packet, packet.header.total_size, 0) == -1)
+            {
+                perror("send");
+                break;
+            }
+
+
+            recv_from_server(sock, receive_buffer, sizeof(receive_buffer));
+            Menu::handle_response_packet(receive_buffer);
         }
-
-        recv_from_server(sock, receive_buffer, sizeof(receive_buffer));
-        Menu::handle_response_packet(receive_buffer);
-
     }
 
     close(sock);
