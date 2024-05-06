@@ -20,6 +20,7 @@ enum class PacketType : uint8_t //Ensure this is one byte
     , RESP_CONTINUE
     , RESP_CRC_FAILED
     , RESP_SERVER_STATUS_RESPONSE
+    , RESP_FILE_TRANSFER_OK
 };
 
 struct PacketHeader
@@ -42,19 +43,19 @@ struct ConnectionWrapper
     uint16_t buffer_pos;
     bool     is_admin;
     int      fd = 0;
-    uint32_t id; //Just in case
+    uint32_t id;
 
-    //~ConnectionWrapper()
-    //{
-    //close(fd);
-    //char* dir_path;
-    //sprintf(dir_path, "./tmp/%d", id);
-    //DIR* dir = opendir(dir_path);
-    //if(dir)
-    //{
-    //std::filesystem::remove_all(dir_path);
-    //}
-    //}
+    ~ConnectionWrapper()
+    {
+        close(fd);
+        char dir_path[255];
+        sprintf(dir_path, "./tmp/%d", id);
+        DIR* dir = opendir(dir_path);
+        if(dir)
+        {
+            std::filesystem::remove_all(dir_path);
+        }
+    }
 
     void send_response_sync(uint8_t* buffer, size_t length)
     {

@@ -77,6 +77,11 @@ public:
             {
                 break;
             }
+            case PacketType::RESP_FILE_TRANSFER_OK:
+            {
+                printf("File transfer was ok!\n");
+                break;
+            }
             default:
             {
                 fprintf(stderr, "UNHANDLED RESPONSE PACKET\n");
