@@ -33,6 +33,46 @@ void send_sample_resp(std::shared_ptr<ConnectionBuffer> cb, uint8_t* buffer, Pac
         , sizeof(SamplePacket));
 }
 
+void write_user_file_list(char* users_dir, PacketFileList p)
+{
+    DIR* dir = opendir(users_dir); //User has no files or dir
+    if(dir == nullptr)
+    {
+        p.file_count = 0;
+        return;
+    }
+
+    struct dirent* entry;
+    size_t         count = 0;
+
+    while((entry = readdir(dir)) != nullptr && count < MAX_FILES)
+    {
+        if((strcmp(entry->d_name, ".") == 0) || (strcmp(entry->d_name, "..") == 0))
+        {
+            continue;
+        }
+
+        //Copy the file name into the packet's file_names array
+        strncpy(p.file_names[count], entry->d_name, MAX_FILENAME_LEN);
+        p.file_names[count][MAX_FILENAME_LEN - 1] = '\0'; //Ensure null termination
+
+        ++count;
+    }
+
+    p.file_count = static_cast<uint8_t>(count);
+    closedir(dir);
+}
+
+void create_file_list_packet(uint32_t uid, uint8_t* buffer)
+{
+    auto& p = *reinterpret_cast<PacketFileList*>(buffer);
+    p.header.command    = PacketType::RESP_FILE_LIST;
+    p.header.total_size = sizeof(PacketFileList);
+    char users_dir[255];
+    sprintf(users_dir, "./tmp/%d", uid);
+    write_user_file_list(users_dir, p);
+}
+
 void create_server_status_packet(uint8_t* buffer)
 {
     auto& p = *reinterpret_cast<ServerStatusPacket*>(buffer);
@@ -105,6 +145,10 @@ void ClientController::initialize()
         {};
 
     handlers[(int)PacketType::REQ_SET_SETTING]
+        = [](std::shared_ptr<ConnectionBuffer> cb)
+        {};
+
+    handlers[(int)PacketType::REQ_FILE_LIST]
         = [](std::shared_ptr<ConnectionBuffer> cb)
         {};
 
