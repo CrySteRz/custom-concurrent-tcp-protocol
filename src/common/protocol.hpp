@@ -18,12 +18,14 @@ enum class PacketType : uint8_t //Ensure this is one byte
     , REQ_GET_SETTINGS
     , REQ_SET_SETTING
     , REQ_LOGIN
+    , REQ_FILE_LIST
     , RESP_CONTINUE
     , RESP_OK
     , RESP_CRC_FAILED
     , RESP_SERVER_STATUS_RESPONSE
     , RESP_FILE_TRANSFER_OK
     , RESP_REQUIRES_ADMIN
+    , RESP_FILE_LIST
 };
 
 struct PacketHeader
