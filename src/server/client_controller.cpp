@@ -2,6 +2,7 @@
 #include "packets.hpp"
 #include "protocol.hpp"
 #include "server_info.hpp"
+#include "sqlite3.h"
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
@@ -10,6 +11,8 @@
 #include <sys/socket.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include "db_handler.cpp"
+
 
 std::function<void(std::shared_ptr<ConnectionBuffer>)>
 ClientController::handlers[UINT8_MAX + 1];
@@ -107,16 +110,13 @@ void ClientController::initialize()
     handlers[(int)PacketType::REQ_FILE_TRANSFER_START]
         = [](std::shared_ptr<ConnectionBuffer> cb)
         {
-            char working_dir[255], file_path[255];
-            sprintf(working_dir, "./tmp/%d", cb->connection->id);
+            char working_dir[255], file_path[512];
+            snprintf(working_dir, sizeof (working_dir),"./tmp/%d", cb->connection->id);
             auto packet = *reinterpret_cast<PacketTransferFileStart*>(cb->buffer);
-            sprintf(file_path, "%s/%s", working_dir, packet.file_name);
+            snprintf(file_path, sizeof(file_path) ,"%s/%s", working_dir, packet.file_name);
             mkdir(working_dir, 0700);
-
             int file = open(file_path, O_RDWR | O_CREAT, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
-
             cb->connection->fd = file;
-
             send_sample_resp(cb, tls_buffer, PacketType::RESP_CONTINUE);
         };
 
@@ -155,16 +155,27 @@ void ClientController::initialize()
     handlers[(int)PacketType::REQ_LOGIN]
         = [](std::shared_ptr<ConnectionBuffer> cb)
         {
+            DatabaseHandler db;
             auto& in_packet = *reinterpret_cast<PacketLogin*>(cb->buffer);
             //TODO: Implement proper auth
-            if((strncmp(in_packet.username, "admin", 5) != 0) || (strncmp(in_packet.password, "admin", 5) != 0))
+            if(db.login(in_packet.username, in_packet.password))
+            {
+                if (db.isAdmin(in_packet.username))
+                {
+                    cb->connection->is_admin = true;
+                    send_sample_resp(cb, tls_buffer, PacketType::RESP_OK);
+                }
+                else
+                {
+                    //TODO: Implement normal client auth, dont know if already implemented
+                    printf("Normal client auth\n");
+                }
+            }
+            else
             {
                 send_resp_unauthorized(cb, tls_buffer);
                 return;
             }
-
-            cb->connection->is_admin = true;
-            send_sample_resp(cb, tls_buffer, PacketType::RESP_OK);
         };
 }
 

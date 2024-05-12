@@ -217,7 +217,7 @@ void handle_pending_connections()
 
 void server_thread()
 {
-    for(; g_state.b_should_run.load(std::memory_order::relaxed);)
+    for(; g_state.b_should_run.load(std::memory_order_relaxed);)
     {
         //Needs to be ran on a sepparate thread because of while(true)
         receive_all_connections();
@@ -253,7 +253,7 @@ int main()
     ClientController::initialize();
 
     g_state.thread_pool.start(6);
-    auto accept_thread = std::jthread(accept_thread_handler);
+    auto accept_thread = std::thread(accept_thread_handler);
 
     server_thread();
 }
