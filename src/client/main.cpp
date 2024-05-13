@@ -1,6 +1,4 @@
 #include "menu.hpp"
-#include "packet_controller.hpp"
-#include "packets.hpp"
 #include "protocol.hpp"
 #include "utils.hpp"
 #include <arpa/inet.h>
@@ -8,7 +6,6 @@
 #include <netinet/in.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 #include <sys/socket.h>
 #include <unistd.h>
 
@@ -62,7 +59,10 @@ int main()
             }
             recv_from_server(sock, receive_buffer, sizeof(receive_buffer));
             //Todo: Change handle response packet to return if we should skip the other packets
-            Menu::handle_response_packet(receive_buffer);
+            if(Menu::handle_response_packet(receive_buffer))
+            {
+                break;
+            }
         }
     }
 

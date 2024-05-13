@@ -118,7 +118,7 @@ public:
         }
     }
 
-    static void handle_response_packet(uint8_t* buffer)
+    static bool handle_response_packet(uint8_t* buffer)
     {
         const Packet& r
             = *reinterpret_cast<Packet*>(buffer);
@@ -167,20 +167,20 @@ public:
             case PacketType::RESP_REQUIRES_ADMIN:
             {
                 printf("The server requires admin for that command, please login using the login command\n");
+                return true;
             }
-            break;
 
             case PacketType::RESP_NOT_LOGGED_IN:
             {
                 printf("You are not logged in\n");
+                return true;
             }
-            break;
 
             case PacketType::RESP_BAD_LOGIN:
             {
                 printf("Bad username/password\n");
+                return true;
             }
-            break;
 
             default:
             {
@@ -189,5 +189,7 @@ public:
             break;
 
         }
+
+        return false;
     }
 };
