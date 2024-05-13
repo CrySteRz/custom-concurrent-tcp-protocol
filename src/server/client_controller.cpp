@@ -17,16 +17,6 @@
 std::function<void(std::shared_ptr<ConnectionBuffer>)>
 ClientController::handlers[UINT8_MAX + 1];
 
-void send_resp_unauthorized(std::shared_ptr<ConnectionBuffer> cb, uint8_t* buffer)
-{
-    auto& p = *reinterpret_cast<SamplePacket*>(buffer);
-    p.header.command    = PacketType::RESP_REQUIRES_ADMIN;
-    p.header.total_size = sizeof(SamplePacket);
-    cb->connection->send_response_sync(buffer
-        , sizeof(SamplePacket));
-
-}
-
 void send_sample_resp(std::shared_ptr<ConnectionBuffer> cb, uint8_t* buffer, PacketType packet_type)
 {
     auto& p = *reinterpret_cast<SamplePacket*>(buffer);
@@ -36,9 +26,20 @@ void send_sample_resp(std::shared_ptr<ConnectionBuffer> cb, uint8_t* buffer, Pac
         , sizeof(SamplePacket));
 }
 
-void write_user_file_list(char* users_dir, PacketFileList p)
+void send_resp_not_admin(std::shared_ptr<ConnectionBuffer> cb, uint8_t* buffer)
 {
-    DIR* dir = opendir(users_dir); //User has no files or dir
+    send_sample_resp(cb, buffer, PacketType::RESP_REQUIRES_ADMIN);
+}
+
+void send_resp_unauthorized(std::shared_ptr<ConnectionBuffer> cb, uint8_t* buffer)
+{
+    send_sample_resp(cb, buffer, PacketType::RESP_NOT_LOGGED_IN);
+}
+
+void write_user_file_list(char* users_dir, uint8_t* buffer)
+{
+    auto& p   = *reinterpret_cast<PacketFileList*>(buffer);
+    DIR*  dir = opendir(users_dir); //User has no files or dir
     if(dir == nullptr)
     {
         p.file_count = 0;
@@ -57,23 +58,25 @@ void write_user_file_list(char* users_dir, PacketFileList p)
 
         //Copy the file name into the packet's file_names array
         strncpy(p.file_names[count], entry->d_name, MAX_FILENAME_LEN);
+        strncpy(p.file_names[count], entry->d_name, MAX_FILENAME_LEN);
         p.file_names[count][MAX_FILENAME_LEN - 1] = '\0'; //Ensure null termination
 
         ++count;
     }
 
     p.file_count = static_cast<uint8_t>(count);
+
     closedir(dir);
 }
 
-void create_file_list_packet(uint32_t uid, uint8_t* buffer)
+void create_file_list_packet(std::string& uid, uint8_t* buffer)
 {
+    char users_dir[255];
+    sprintf(users_dir, "./tmp/%s", uid.c_str());
+    write_user_file_list(users_dir, buffer);
     auto& p = *reinterpret_cast<PacketFileList*>(buffer);
     p.header.command    = PacketType::RESP_FILE_LIST;
     p.header.total_size = sizeof(PacketFileList);
-    char users_dir[255];
-    sprintf(users_dir, "./tmp/%d", uid);
-    write_user_file_list(users_dir, p);
 }
 
 void create_server_status_packet(uint8_t* buffer)
@@ -93,7 +96,7 @@ void ClientController::initialize()
     {
         if(!cb->connection->is_admin)
         {
-            send_resp_unauthorized(cb, tls_buffer);
+            send_resp_not_admin(cb, tls_buffer);
             return;
         }
 
@@ -111,9 +114,9 @@ void ClientController::initialize()
         = [](std::shared_ptr<ConnectionBuffer> cb)
         {
             char working_dir[255], file_path[512];
-            snprintf(working_dir, sizeof (working_dir),"./tmp/%s", cb->connection->id.c_str());
+            snprintf(working_dir, sizeof(working_dir), "./tmp/%s", cb->connection->id.c_str());
             auto packet = *reinterpret_cast<PacketTransferFileStart*>(cb->buffer);
-            snprintf(file_path, sizeof(file_path) ,"%s/%s", working_dir, packet.file_name);
+            snprintf(file_path, sizeof(file_path), "%s/%s", working_dir, packet.file_name);
             mkdir(working_dir, 0700);
             int file = open(file_path, O_RDWR | O_CREAT, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
             cb->connection->fd = file;
@@ -150,32 +153,28 @@ void ClientController::initialize()
 
     handlers[(int)PacketType::REQ_FILE_LIST]
         = [](std::shared_ptr<ConnectionBuffer> cb)
-        {};
+        {
+            create_file_list_packet(cb->connection->id, tls_buffer);
+            cb->connection->send_response_sync(tls_buffer, sizeof(PacketFileList));
+        };
 
     handlers[(int)PacketType::REQ_LOGIN]
         = [](std::shared_ptr<ConnectionBuffer> cb)
         {
             DatabaseHandler db;
-            auto& in_packet = *reinterpret_cast<PacketLogin*>(cb->buffer);
-            //TODO: Implement proper auth
+            auto&           in_packet = *reinterpret_cast<PacketLogin*>(cb->buffer);
             if(db.login(in_packet.username, in_packet.password))
             {
                 cb->connection->id = db.getID(in_packet.username);
-                if (db.isAdmin(in_packet.username))
+                if(db.isAdmin(in_packet.username))
                 {
                     cb->connection->is_admin = true;
-                    
-                    send_sample_resp(cb, tls_buffer, PacketType::RESP_OK);
                 }
-                else
-                {
-                    //TODO: Implement normal client auth, dont know if already implemented
-                    printf("Normal client auth\n");
-                }
+                send_sample_resp(cb, tls_buffer, PacketType::RESP_OK);
             }
             else
             {
-                send_resp_unauthorized(cb, tls_buffer);
+                send_sample_resp(cb, tls_buffer, PacketType::RESP_BAD_LOGIN);
                 return;
             }
         };
@@ -184,11 +183,10 @@ void ClientController::initialize()
 void ClientController::process_packet(std::shared_ptr<ConnectionBuffer> cb)
 {
     auto packet_type = cb->get_packet_type();
-    if ( packet_type != PacketType::REQ_LOGIN && cb->connection->id.empty())
+    if((packet_type != PacketType::REQ_LOGIN) && cb->connection->id.empty())
     {
         send_resp_unauthorized(cb, tls_buffer);
         return;
-        //TODO: Send unauthorized response
     }
 
     handlers[(int)packet_type](cb);

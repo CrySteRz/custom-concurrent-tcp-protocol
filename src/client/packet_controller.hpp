@@ -62,6 +62,14 @@ public:
         return packet;
     }
 
+    static Packet create_ls_packet()
+    {
+        Packet p;
+        p.header.command    = PacketType::REQ_FILE_LIST;
+        p.header.total_size = sizeof(PacketHeader);
+        return p;
+    }
+
     static Packet create_login_packet(const char* username, const char* password)
     {
         Packet p;

@@ -68,18 +68,47 @@ public:
             return packets;
         }
 
+        if(strncmp(input, "ls", 2) == 0)
+        {
+            return std::vector<Packet>{PacketController::create_ls_packet()};
+        }
+
         return {};
+    }
+
+    static void list_files(const PacketFileList& p)
+    {
+        printf("There are %d files uploaded!\n", p.file_count);
+
+        for(size_t i = 0; i < p.file_count; i++)
+        {
+            puts(p.file_names[i]);
+        }
+
+        if(p.file_count != 0)
+        {
+            puts("\n");
+        }
     }
 
     static void handle_response_packet(uint8_t* buffer)
     {
-        const ServerStatusPacket& resp
-            = *reinterpret_cast<ServerStatusPacket*>(buffer);
+        const Packet& r
+            = *reinterpret_cast<Packet*>(buffer);
 
-        switch(resp.header.command)
+        switch(r.header.command)
         {
+            case PacketType::RESP_FILE_LIST:
+            {
+                const PacketFileList& resp
+                    = *reinterpret_cast<PacketFileList*>(buffer);
+                list_files(resp);
+                break;
+            }
             case PacketType::RESP_SERVER_STATUS_RESPONSE:
             {
+                const ServerStatusPacket& resp
+                    = *reinterpret_cast<ServerStatusPacket*>(buffer);
                 printf("packet_size: %d cpu:%d mem:%f uptime:%ld\n", resp.header.total_size
                     , resp.cpu_usage, resp.memory_info.total_memory, resp.uptime_seconds);
                 break;
@@ -103,6 +132,18 @@ public:
             case PacketType::RESP_REQUIRES_ADMIN:
             {
                 printf("The server requires admin for that command, please login using the login command\n");
+            }
+            break;
+
+            case PacketType::RESP_NOT_LOGGED_IN:
+            {
+                printf("You are not logged in\n");
+            }
+            break;
+
+            case PacketType::RESP_BAD_LOGIN:
+            {
+                printf("Bad username/password\n");
             }
             break;
 

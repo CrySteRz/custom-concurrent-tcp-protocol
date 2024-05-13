@@ -25,6 +25,8 @@ enum class PacketType : uint8_t //Ensure this is one byte
     , RESP_SERVER_STATUS_RESPONSE
     , RESP_FILE_TRANSFER_OK
     , RESP_REQUIRES_ADMIN
+    , RESP_NOT_LOGGED_IN
+    , RESP_BAD_LOGIN
     , RESP_FILE_LIST
 };
 
@@ -43,11 +45,11 @@ struct Packet
 
 struct ConnectionWrapper
 {
-    uint32_t socket_fd;
-    uint8_t  buffer[UINT16_MAX];
-    uint16_t buffer_pos;
-    bool     is_admin;
-    int      fd = 0;
+    uint32_t    socket_fd;
+    uint8_t     buffer[UINT16_MAX];
+    uint16_t    buffer_pos;
+    bool        is_admin;
+    int         fd = 0;
     std::string id;
 
     ~ConnectionWrapper()
@@ -93,10 +95,11 @@ struct ConnectionBuffer
 {
     PacketType get_packet_type()
     {
-        if((connection->buffer[1] < 0) || (connection->buffer[1] > (int)PacketType::RESP_SERVER_STATUS_RESPONSE))
-        {
-            return PacketType::REQ_SET_SETTING;
-        }
+        //TODO: Enable this after everything is done
+        //if((connection->buffer[1] < 0) || (connection->buffer[1] > (int)PacketType::RESP_FILE_LIST))
+        //{
+        //return PacketType::REQ_SET_SETTING;
+        //}
         return (PacketType)connection->buffer[1];
     }
     ConnectionWrapper* connection;

@@ -14,7 +14,7 @@
 
 #define SERVER_PORT 1312
 #define SERVER_IP   "127.0.0.1"
-#define BUFFER_SIZE 2048
+#define BUFFER_SIZE UINT16_MAX
 
 int main()
 {
@@ -60,10 +60,8 @@ int main()
                 perror("send");
                 break;
             }
-
             recv_from_server(sock, receive_buffer, sizeof(receive_buffer));
             //Todo: Change handle response packet to return if we should skip the other packets
-            
             Menu::handle_response_packet(receive_buffer);
         }
     }
