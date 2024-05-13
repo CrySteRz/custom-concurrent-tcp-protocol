@@ -8,10 +8,12 @@
 #include <cstring>
 #include <fcntl.h>
 #include <memory>
+#include <mutex>
 #include <sys/socket.h>
 #include <sys/stat.h>
 #include <unistd.h>
 #include "db_handler.hpp"
+#include "state.hpp"
 
 
 std::function<void(std::shared_ptr<ConnectionBuffer>)>
@@ -69,6 +71,23 @@ void write_user_file_list(char* users_dir, uint8_t* buffer)
     closedir(dir);
 }
 
+void parse_seting_packet_and_set(SetSettingPacket p)
+{
+    switch(p.setting)
+    {
+        case Setting::COMPRESSION_LEVEL:
+        {
+            //TODO: Add checks
+            g_state.compression_level = p.value[0];
+            break;
+        }
+        default:
+        {
+            return;
+        }
+    }
+}
+
 void create_file_list_packet(std::string& uid, uint8_t* buffer)
 {
     char users_dir[255];
@@ -87,6 +106,14 @@ void create_server_status_packet(uint8_t* buffer)
     p.cpu_usage         = ServerInfo::get_cpu_usage_percentage();
     p.memory_info       = ServerInfo::get_memory_usage();
     p.uptime_seconds    = ServerInfo::get_system_uptime_seconds();
+}
+
+void create_settings_resp_packet(uint8_t* buffer)
+{
+    auto& p = *reinterpret_cast<GetSettingsPacket*>(buffer);
+    p.header.command    = PacketType::RESP_SETTINGS;
+    p.compression_level = g_state.compression_level;
+    p.header.total_size = sizeof(GetSettingsPacket);
 }
 
 void ClientController::initialize()
@@ -145,11 +172,29 @@ void ClientController::initialize()
 
     handlers[(int)PacketType::REQ_GET_SETTINGS]
         = [](std::shared_ptr<ConnectionBuffer> cb)
-        {};
+        {
+            if(!cb->connection->is_admin)
+            {
+                send_resp_not_admin(cb, tls_buffer);
+                return;
+            }
+            create_settings_resp_packet(tls_buffer);
+            cb->connection->send_response_sync(tls_buffer, sizeof(PacketFileList));
+        };
 
     handlers[(int)PacketType::REQ_SET_SETTING]
         = [](std::shared_ptr<ConnectionBuffer> cb)
-        {};
+        {
+            if(!cb->connection->is_admin)
+            {
+                send_resp_not_admin(cb, tls_buffer);
+                return;
+            }
+            std::lock_guard<std::mutex> guard(g_state.settings_write_lock);
+            SetSettingPacket            p = *reinterpret_cast<SetSettingPacket*>(&cb->connection->buffer);
+            parse_seting_packet_and_set(p);
+            send_sample_resp(cb, tls_buffer, PacketType::RESP_OK);
+        };
 
     handlers[(int)PacketType::REQ_FILE_LIST]
         = [](std::shared_ptr<ConnectionBuffer> cb)

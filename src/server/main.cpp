@@ -10,39 +10,15 @@
 #include <cstring>
 #include <memory>
 #include <mutex>
-#include <stack>
-#include <thread>
-#include <vector>
-
+#include "state.hpp"
 #include <fcntl.h>
 #include <netinet/in.h>
 
 #include "client_controller.hpp"
 #include "protocol.hpp"
-#include "thread_pool.hpp"
-#include "db_handler.hpp"
 
 #define PORT    1312
 #define BACKLOG UINT16_MAX
-
-struct ServerState
-{
-    using TPendingConnections
-        = std::stack<std::shared_ptr<ConnectionWrapper>
-            , std::vector<std::shared_ptr<ConnectionWrapper>>>;
-
-    TPendingConnections pending_connections;
-    std::mutex          pending_connections_mtx;
-
-    std::vector<std::shared_ptr<ConnectionWrapper>> active_connections;
-    std::stack<std::shared_ptr<ConnectionBuffer>>   completed_packets;
-    ThreadPool                                      thread_pool;
-
-    std::atomic_bool b_should_run     = true;
-    std::atomic_int  server_socket_fd = -1;
-};
-
-static ServerState g_state;
 
 void make_socket_non_blocking(int socket_fd)
 {

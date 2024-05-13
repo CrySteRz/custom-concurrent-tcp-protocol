@@ -8,7 +8,7 @@
 #include <sys/socket.h>
 #include <thread>
 
-enum class PacketType : uint8_t //Ensure this is one byte
+enum class PacketType : uint8_t
 {
     REQ_FILE_TRANSFER_START
     , REQ_FILE_TRANSFER_CHUNK
@@ -27,6 +27,7 @@ enum class PacketType : uint8_t //Ensure this is one byte
     , RESP_REQUIRES_ADMIN
     , RESP_NOT_LOGGED_IN
     , RESP_BAD_LOGIN
+    , RESP_SETTINGS
     , RESP_FILE_LIST
 };
 

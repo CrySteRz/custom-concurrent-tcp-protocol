@@ -14,6 +14,24 @@ struct ServerStatusPacket
     long         uptime_seconds;
 };
 
+enum class Setting : uint8_t
+{
+    COMPRESSION_LEVEL
+};
+
+struct SetSettingPacket
+{
+    PacketHeader header;
+    Setting      setting;
+    uint8_t      value[8];
+};
+
+struct GetSettingsPacket
+{
+    PacketHeader header;
+    uint8_t      compression_level;
+};
+
 struct SamplePacket
 {
     PacketHeader header;

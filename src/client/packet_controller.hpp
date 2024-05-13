@@ -5,59 +5,68 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
-#include <functional>
-#include <memory>
+#include <optional>
 #include <sys/types.h>
 
-inline std::vector<uint8_t> read_entire_file(const char* path)
+std::optional<Packet> create_set_setting_packet_wrapped(char* value, Setting s)
 {
-    std::ifstream file(path, std::ios::binary);
-    if(!file.is_open())
+    SetSettingPacket p;
+    p.header.command    = PacketType::REQ_SET_SETTING;
+    p.header.total_size = sizeof(SetSettingPacket);
+
+    switch(s)
     {
-        throw;
+        case Setting::COMPRESSION_LEVEL:
+        {
+            int parsed = atoi(value);
+            if((parsed > UINT8_MAX) || (parsed < 0))
+            {
+                printf("Value is out of bounds (0..255)\n");
+                return {};
+            }
+            uint8_t* val = reinterpret_cast<uint8_t*>(&p.value);
+            *val = parsed;
+            return *reinterpret_cast<Packet*>(&p);
+        }
+        default:
+        {
+            printf("Invalid setting\n");
+            return {};
+        }
+
     }
-
-    file.seekg(0, std::ios::end);
-    size_t size = file.tellg();
-    file.seekg(0);
-
-    std::vector<uint8_t> data(size);
-    file.read(reinterpret_cast<char*>(data.data()), size);
-    file.close();
-
-    return data;
-}
-
-inline std::vector<std::vector<uint8_t>> break_vector_into(uint16_t size, std::vector<uint8_t> data)
-{
-    std::vector<std::vector<uint8_t>> result;
-
-    size_t dataSize  = data.size();
-    size_t num_vecs  = dataSize / size;
-    size_t remaining = dataSize % size;
-
-    for(size_t i = 0; i < num_vecs; ++i)
-    {
-        result.push_back(std::vector<uint8_t>(data.begin() + i * size, data.begin() + (i + 1) * size));
-    }
-
-    if(remaining > 0)
-    {
-        result.push_back(std::vector<uint8_t>(data.begin() + num_vecs * size, data.end()));
-    }
-
-    return result;
 }
 
 class PacketController
 {
 public:
+    static std::optional<Packet> create_set_setting_packet(char* str)
+    {
+        if(strncmp(str, "COMPRESSION_LEVEL=", 18))
+        {
+            return create_set_setting_packet_wrapped(str + 19, Setting::COMPRESSION_LEVEL);
+        }
+        printf("The correct syntax is set SETTING=value\ni.e. set COMPRESSION_LEVEL=2\n");
+
+        return {};
+    }
+
     static Packet create_server_status_packet()
     {
         Packet packet;
         packet.header.command    = PacketType::REQ_SERVER_STATUS;
         packet.header.version    = 0;
-        packet.header.total_size = 4;
+        packet.header.total_size = sizeof(PacketHeader);
+
+        return packet;
+    }
+
+    static Packet create_get_settings_packet()
+    {
+        Packet packet;
+        packet.header.command    = PacketType::REQ_GET_SETTINGS;
+        packet.header.version    = 0;
+        packet.header.total_size = sizeof(PacketHeader);
 
         return packet;
     }
@@ -81,33 +90,5 @@ public:
         return p;
     }
 
-    static std::vector<Packet> create_file_transfer_packets(const char* file_path, uint16_t chunk_size)
-    {
-        auto file_content = read_entire_file(file_path);
 
-        auto file_chunks = break_vector_into(chunk_size, file_content);
-
-        std::vector<Packet> packets;
-
-        PacketTransferFileStart p;
-        strcpy(p.file_name, file_path);
-        p.header.command    = PacketType::REQ_FILE_TRANSFER_START;
-        p.header.total_size = sizeof(PacketTransferFileStart);
-
-        packets.push_back(*reinterpret_cast<Packet*>(&p));
-
-        for(auto chunk : file_chunks)
-        {
-            Packet p;
-            p.header.total_size = sizeof(PacketHeader) + chunk.size();
-
-            p.header.command = PacketType::REQ_FILE_TRANSFER_CHUNK;
-            memcpy(p.buffer, chunk.data(), chunk.size());
-            packets.push_back(p);
-        }
-
-        packets.back().header.command = PacketType::REQ_FILE_TRANSFER_END;
-
-        return packets;
-    }
 };

@@ -1,11 +1,16 @@
 #include "packets.hpp"
 #include "protocol.hpp"
 #include "packet_controller.hpp"
+#include "utils.hpp"
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
 #include <optional>
-#include <utility>
+
+void print_settings(GetSettingsPacket p)
+{
+    printf("Compression Level: %d\n", p.compression_level);
+}
 
 inline std::vector<const char*> extract_file_paths(const char* input)
 {
@@ -42,6 +47,23 @@ public:
             return std::vector<Packet>{packet};
         }
 
+        if(strncmp(input, "get_settings", 12) == 0)
+        {
+            auto packet = PacketController::create_get_settings_packet();
+
+            return std::vector<Packet>{packet};
+        }
+
+        if(strncmp(input, "set", 3) == 0)
+        {
+            auto packet = PacketController::create_set_setting_packet(input + 3);
+
+            if(packet.has_value())
+            {
+                return std::vector<Packet>{packet.value()};
+            }
+        }
+
         if(strncmp(input, "login", 5) == 0)
         {
             char* username;
@@ -61,11 +83,16 @@ public:
 
             for(auto path : file_paths)
             {
-                auto file_packets = PacketController::create_file_transfer_packets(path, UINT16_MAX - sizeof(PacketHeader));
+                auto file_packets = create_file_transfer_packets(path, UINT16_MAX - sizeof(PacketHeader));
                 packets.insert(packets.end(), file_packets.begin(), file_packets.end());
             }
 
             return packets;
+        }
+
+        if(strncmp(input, "get", 3) == 0)
+        {
+            std::vector<Packet> packets;
         }
 
         if(strncmp(input, "ls", 2) == 0)
@@ -95,6 +122,7 @@ public:
     {
         const Packet& r
             = *reinterpret_cast<Packet*>(buffer);
+        printf("Packet: %d\n", r.header.command);
 
         switch(r.header.command)
         {
@@ -111,6 +139,13 @@ public:
                     = *reinterpret_cast<ServerStatusPacket*>(buffer);
                 printf("packet_size: %d cpu:%d mem:%f uptime:%ld\n", resp.header.total_size
                     , resp.cpu_usage, resp.memory_info.total_memory, resp.uptime_seconds);
+                break;
+            }
+            case PacketType::RESP_SETTINGS:
+            {
+                const GetSettingsPacket& resp
+                    = *reinterpret_cast<GetSettingsPacket*>(buffer);
+                print_settings(resp);
                 break;
             }
             case PacketType::RESP_CONTINUE:
