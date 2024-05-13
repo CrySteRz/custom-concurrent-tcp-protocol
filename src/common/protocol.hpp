@@ -48,13 +48,13 @@ struct ConnectionWrapper
     uint16_t buffer_pos;
     bool     is_admin;
     int      fd = 0;
-    uint32_t id;
+    std::string id;
 
     ~ConnectionWrapper()
     {
         close(fd);
         char dir_path[255];
-        sprintf(dir_path, "./tmp/%d", id);
+        sprintf(dir_path, "./tmp/%s", id.c_str());
         DIR* dir = opendir(dir_path);
         if(dir)
         {
@@ -93,7 +93,6 @@ struct ConnectionBuffer
 {
     PacketType get_packet_type()
     {
-        //Avoid crash when PacketType is invalid
         if((connection->buffer[1] < 0) || (connection->buffer[1] > (int)PacketType::RESP_SERVER_STATUS_RESPONSE))
         {
             return PacketType::REQ_SET_SETTING;

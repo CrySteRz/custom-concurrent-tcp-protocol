@@ -1,3 +1,4 @@
+#pragma once
 #include "sqlite3.h"
 #include <iostream>
 #include <vector>
@@ -22,15 +23,9 @@ public:
         sqlite3_close(db);
     }
 
-    std::string getID(const std::string& username, const std::string& password);
-    std::string getHashedPassword(const std::string& username);
-    bool login(const std::string& username, const std::string& password);
-    std::string hashPassword(const std::string& input);
-    bool isAdmin(const std::string& username);
-};
+    
 
-
-std::string DatabaseHandler::getID(const std::string& username, const std::string& password) {
+    std::string getID(const std::string& username) {
     std::string id;
     const char* sql = "SELECT UUID FROM USERS WHERE USERNAME = ?;";
     sqlite3_stmt* stmt;
@@ -44,7 +39,7 @@ std::string DatabaseHandler::getID(const std::string& username, const std::strin
     return id;
 }
 
-std::string DatabaseHandler::getHashedPassword(const std::string& username) {
+std::string getHashedPassword(const std::string& username) {
         std::string hashed_password;
         const char* sql = "SELECT PASSWORD FROM USERS WHERE USERNAME = ?;";
         sqlite3_stmt* stmt;
@@ -71,7 +66,7 @@ std::string DatabaseHandler::getHashedPassword(const std::string& username) {
         return hashed_password;
     }
 
-bool DatabaseHandler::login(const std::string& username, const std::string& password) {
+bool login(const std::string& username, const std::string& password) {
     std::string hashed_input_password = hashPassword(password);
     std::string stored_hashed_password = getHashedPassword(username);
     if (!stored_hashed_password.empty() && hashed_input_password == stored_hashed_password) {
@@ -83,7 +78,7 @@ bool DatabaseHandler::login(const std::string& username, const std::string& pass
     }
 }
 
-std::string DatabaseHandler::hashPassword(const std::string& input) {
+std::string hashPassword(const std::string& input) {
     unsigned char hash[EVP_MAX_MD_SIZE];
     unsigned int hash_len;
     EVP_MD_CTX *ctx = EVP_MD_CTX_new();
@@ -98,7 +93,7 @@ std::string DatabaseHandler::hashPassword(const std::string& input) {
     return ss.str();
 }
 
-bool DatabaseHandler::isAdmin(const std::string& username) {
+bool isAdmin(const std::string& username) {
         const char* sql = "SELECT ROLE FROM USERS WHERE USERNAME = ?;";
         sqlite3_stmt* stmt;
         int rc = sqlite3_prepare_v2(db, sql, -1, &stmt, nullptr);
@@ -119,3 +114,9 @@ bool DatabaseHandler::isAdmin(const std::string& username) {
         sqlite3_finalize(stmt);
         return false;
     }
+
+
+};
+
+
+

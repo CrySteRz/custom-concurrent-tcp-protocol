@@ -11,7 +11,7 @@
 #include <sys/socket.h>
 #include <sys/stat.h>
 #include <unistd.h>
-#include "db_handler.cpp"
+#include "db_handler.hpp"
 
 
 std::function<void(std::shared_ptr<ConnectionBuffer>)>
@@ -111,7 +111,7 @@ void ClientController::initialize()
         = [](std::shared_ptr<ConnectionBuffer> cb)
         {
             char working_dir[255], file_path[512];
-            snprintf(working_dir, sizeof (working_dir),"./tmp/%d", cb->connection->id);
+            snprintf(working_dir, sizeof (working_dir),"./tmp/%s", cb->connection->id.c_str());
             auto packet = *reinterpret_cast<PacketTransferFileStart*>(cb->buffer);
             snprintf(file_path, sizeof(file_path) ,"%s/%s", working_dir, packet.file_name);
             mkdir(working_dir, 0700);
@@ -160,9 +160,11 @@ void ClientController::initialize()
             //TODO: Implement proper auth
             if(db.login(in_packet.username, in_packet.password))
             {
+                cb->connection->id = db.getID(in_packet.username);
                 if (db.isAdmin(in_packet.username))
                 {
                     cb->connection->is_admin = true;
+                    
                     send_sample_resp(cb, tls_buffer, PacketType::RESP_OK);
                 }
                 else
@@ -182,6 +184,12 @@ void ClientController::initialize()
 void ClientController::process_packet(std::shared_ptr<ConnectionBuffer> cb)
 {
     auto packet_type = cb->get_packet_type();
+    if ( packet_type != PacketType::REQ_LOGIN && cb->connection->id.empty())
+    {
+        send_resp_unauthorized(cb, tls_buffer);
+        return;
+        //TODO: Send unauthorized response
+    }
 
     handlers[(int)packet_type](cb);
 }

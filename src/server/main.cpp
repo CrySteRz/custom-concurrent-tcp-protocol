@@ -20,6 +20,7 @@
 #include "client_controller.hpp"
 #include "protocol.hpp"
 #include "thread_pool.hpp"
+#include "db_handler.hpp"
 
 #define PORT    1312
 #define BACKLOG UINT16_MAX
@@ -105,7 +106,6 @@ void accept_thread_handler()
         }
         make_socket_non_blocking(client_socket_fd);
         auto cw = std::make_shared<ConnectionWrapper>(client_socket_fd);
-        cw->id = rand();
         {
             std::lock_guard guard{g_state.pending_connections_mtx};
             g_state.pending_connections.push(std::move(cw));
