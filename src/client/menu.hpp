@@ -54,9 +54,30 @@ public:
             return std::vector<Packet>{packet};
         }
 
+        if(strncmp(input, "getid", 5) == 0)
+        {
+            auto packet = PacketController::create_get_id_packet();
+
+            return std::vector<Packet>{packet};
+        }
+
+        if(strncmp(input, "logout", 6) == 0)
+        {
+            auto packet = PacketController::create_logout_packet();
+
+            return std::vector<Packet>{packet};
+        }
+
         if(strncmp(input, "connections", 11) == 0)
         {
             auto packet = PacketController::create_connections_status_packet();
+
+            return std::vector<Packet>{packet};
+        }
+
+        if(strncmp(input, "ping", 4) == 0)
+        {
+            auto packet = PacketController::create_ping_packet();
 
             return std::vector<Packet>{packet};
         }
@@ -140,11 +161,23 @@ public:
 
         switch(r.header.command)
         {
+            case PacketType::RESP_CURRENT_USER:
+            {
+                const PacketCurrentUser& resp
+                    = *reinterpret_cast<PacketCurrentUser*>(buffer);
+                printf("Current user id:%s\n", resp.id);
+                break;
+            }
             case PacketType::RESP_CONNECTIONS_INFO:
             {
                 const PacketConnectionsInfo& resp
                     = *reinterpret_cast<PacketConnectionsInfo*>(buffer);
                 print_connections_info(resp);
+                break;
+            }
+            case PacketType::RESP_PONG:
+            {
+                printf("PONG!\n");
                 break;
             }
             case PacketType::RESP_FILE_LIST:

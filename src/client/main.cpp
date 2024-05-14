@@ -58,7 +58,7 @@ int main()
                 break;
             }
             recv_from_server(sock, receive_buffer, sizeof(receive_buffer));
-            //Todo: Change handle response packet to return if we should skip the other packets
+
             if(Menu::handle_response_packet(receive_buffer))
             {
                 break;

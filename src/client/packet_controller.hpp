@@ -61,6 +61,21 @@ public:
         return packet;
     }
 
+    static Packet create_get_id_packet()
+    {
+        return create_sample_packet(PacketType::REQ_GET_CURRENT_USER);
+    }
+
+    static Packet create_logout_packet()
+    {
+        return create_sample_packet(PacketType::REQ_LOGOUT);
+    }
+
+    static Packet create_ping_packet()
+    {
+        return create_sample_packet(PacketType::REQ_PING);
+    }
+
     static Packet create_server_status_packet()
     {
         return create_sample_packet(PacketType::REQ_SERVER_STATUS);

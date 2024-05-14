@@ -88,6 +88,14 @@ void parse_seting_packet_and_set(SetSettingPacket p)
     }
 }
 
+void create_current_user_packet(std::string& id, uint8_t* buffer)
+{
+    auto& p = *reinterpret_cast<PacketCurrentUser*>(buffer);
+    p.header.total_size = sizeof(PacketCurrentUser);
+    p.header.command    = PacketType::RESP_CURRENT_USER;
+    strncpy(p.id, id.c_str(), sizeof(p.id));
+}
+
 void create_file_list_packet(std::string& uid, uint8_t* buffer)
 {
     char users_dir[255];
@@ -111,9 +119,8 @@ void create_server_status_packet(uint8_t* buffer)
 void create_connections_info_packet(uint8_t* buffer)
 {
     auto& p = *reinterpret_cast<PacketConnectionsInfo*>(buffer);
-    p.header.command    = PacketType::RESP_CONNECTIONS_INFO;
-    p.header.total_size = sizeof(PacketConnectionsInfo);
-    std::cout << g_state.completed_packets.size() << " " << g_state.active_connections.size() << " " << g_state.pending_connections.size() << "\n";
+    p.header.command           = PacketType::RESP_CONNECTIONS_INFO;
+    p.header.total_size        = sizeof(PacketConnectionsInfo);
     p.completed_packets        = g_state.completed_packets.size();
     p.active_connection_count  = g_state.active_connections.size() + 1;
     p.pending_connection_count = g_state.pending_connections.size();
@@ -163,6 +170,27 @@ void ClientController::initialize()
     handlers[(int)PacketType::REQ_CRC_VERIFY]
         = [](std::shared_ptr<ConnectionBuffer> cb)
         {};
+
+    handlers[(int)PacketType::REQ_LOGOUT]
+        = [](std::shared_ptr<ConnectionBuffer> cb)
+        {
+            cb->connection->id.clear();
+            send_sample_resp(cb, tls_buffer, PacketType::RESP_OK);
+        };
+
+    handlers[(int)PacketType::REQ_PING]
+        = [](std::shared_ptr<ConnectionBuffer> cb)
+        {
+            send_sample_resp(cb, tls_buffer, PacketType::RESP_PONG);
+        };
+
+    handlers[(int)PacketType::REQ_GET_CURRENT_USER]
+        = [](std::shared_ptr<ConnectionBuffer> cb)
+        {
+            create_current_user_packet(cb->connection->id, tls_buffer);
+            cb->connection->send_response_sync(tls_buffer
+                , sizeof(PacketCurrentUser));
+        };
 
     handlers[(int)PacketType::REQ_FILE_TRANSFER_START]
         = [](std::shared_ptr<ConnectionBuffer> cb)
@@ -255,7 +283,7 @@ void ClientController::initialize()
 void ClientController::process_packet(std::shared_ptr<ConnectionBuffer> cb)
 {
     auto packet_type = cb->get_packet_type();
-    if((packet_type != PacketType::REQ_LOGIN) && cb->connection->id.empty())
+    if((packet_type != PacketType::REQ_LOGIN) && (packet_type != PacketType::REQ_PING) && (packet_type != PacketType::REQ_LOGOUT) && cb->connection->id.empty())
     {
         send_resp_unauthorized(cb, tls_buffer);
         return;

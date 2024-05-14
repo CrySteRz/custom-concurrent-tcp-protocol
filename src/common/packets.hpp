@@ -76,6 +76,12 @@ struct PacketFileList
     char         file_names[MAX_FILES][MAX_FILENAME_LEN];
 };
 
+struct PacketCurrentUser
+{
+    PacketHeader header;
+    char         id[255];
+};
+
 struct PacketTransferFileChunk
 {
     PacketHeader header;
