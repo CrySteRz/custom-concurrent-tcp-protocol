@@ -51,32 +51,34 @@ public:
         return {};
     }
 
-    static Packet create_server_status_packet()
+    static Packet create_sample_packet(PacketType command)
     {
         Packet packet;
-        packet.header.command    = PacketType::REQ_SERVER_STATUS;
+        packet.header.command    = command;
         packet.header.version    = 0;
         packet.header.total_size = sizeof(PacketHeader);
 
         return packet;
+    }
+
+    static Packet create_server_status_packet()
+    {
+        return create_sample_packet(PacketType::REQ_SERVER_STATUS);
+    }
+
+    static Packet create_connections_status_packet()
+    {
+        return create_sample_packet(PacketType::REQ_CONNECTIONS_INFO);
     }
 
     static Packet create_get_settings_packet()
     {
-        Packet packet;
-        packet.header.command    = PacketType::REQ_GET_SETTINGS;
-        packet.header.version    = 0;
-        packet.header.total_size = sizeof(PacketHeader);
-
-        return packet;
+        return create_sample_packet(PacketType::REQ_GET_SETTINGS);
     }
 
     static Packet create_ls_packet()
     {
-        Packet p;
-        p.header.command    = PacketType::REQ_FILE_LIST;
-        p.header.total_size = sizeof(PacketHeader);
-        return p;
+        return create_sample_packet(PacketType::REQ_FILE_LIST);
     }
 
     static Packet create_login_packet(const char* username, const char* password)

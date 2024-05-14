@@ -19,6 +19,7 @@ enum class PacketType : uint8_t
     , REQ_SET_SETTING
     , REQ_LOGIN
     , REQ_FILE_LIST
+    , REQ_CONNECTIONS_INFO
     , RESP_CONTINUE
     , RESP_OK
     , RESP_CRC_FAILED
@@ -28,6 +29,7 @@ enum class PacketType : uint8_t
     , RESP_NOT_LOGGED_IN
     , RESP_BAD_LOGIN
     , RESP_SETTINGS
+    , RESP_CONNECTIONS_INFO
     , RESP_FILE_LIST
 };
 

@@ -7,9 +7,16 @@
 #include <cstring>
 #include <optional>
 
-void print_settings(GetSettingsPacket p)
+void print_settings(const GetSettingsPacket& p)
 {
     printf("Compression Level: %d\n", p.compression_level);
+}
+
+void print_connections_info(const PacketConnectionsInfo& p)
+{
+
+    printf("Packets waiting to be processed: %ld\tActive connection count: %ld\tPending connection count: %ld\n"
+        , p.completed_packets, p.active_connection_count, p.pending_connection_count);
 }
 
 inline std::vector<const char*> extract_file_paths(const char* input)
@@ -43,6 +50,13 @@ public:
         if(strncmp(input, "status", 6) == 0)
         {
             auto packet = PacketController::create_server_status_packet();
+
+            return std::vector<Packet>{packet};
+        }
+
+        if(strncmp(input, "connections", 11) == 0)
+        {
+            auto packet = PacketController::create_connections_status_packet();
 
             return std::vector<Packet>{packet};
         }
@@ -126,6 +140,13 @@ public:
 
         switch(r.header.command)
         {
+            case PacketType::RESP_CONNECTIONS_INFO:
+            {
+                const PacketConnectionsInfo& resp
+                    = *reinterpret_cast<PacketConnectionsInfo*>(buffer);
+                print_connections_info(resp);
+                break;
+            }
             case PacketType::RESP_FILE_LIST:
             {
                 const PacketFileList& resp

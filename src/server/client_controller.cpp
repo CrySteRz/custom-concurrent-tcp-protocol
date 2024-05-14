@@ -108,6 +108,17 @@ void create_server_status_packet(uint8_t* buffer)
     p.uptime_seconds    = ServerInfo::get_system_uptime_seconds();
 }
 
+void create_connections_info_packet(uint8_t* buffer)
+{
+    auto& p = *reinterpret_cast<PacketConnectionsInfo*>(buffer);
+    p.header.command    = PacketType::RESP_CONNECTIONS_INFO;
+    p.header.total_size = sizeof(PacketConnectionsInfo);
+    std::cout << g_state.completed_packets.size() << " " << g_state.active_connections.size() << " " << g_state.pending_connections.size() << "\n";
+    p.completed_packets        = g_state.completed_packets.size();
+    p.active_connection_count  = g_state.active_connections.size() + 1;
+    p.pending_connection_count = g_state.pending_connections.size();
+}
+
 void create_settings_resp_packet(uint8_t* buffer)
 {
     auto& p = *reinterpret_cast<GetSettingsPacket*>(buffer);
@@ -132,6 +143,22 @@ void ClientController::initialize()
         cb->connection->send_response_sync(tls_buffer
         , sizeof(ServerStatusPacket));
     });
+
+
+    handlers[(int)PacketType::REQ_CONNECTIONS_INFO]
+        = [](std::shared_ptr<ConnectionBuffer> cb)
+        {
+            if(!cb->connection->is_admin)
+            {
+                send_resp_not_admin(cb, tls_buffer);
+                return;
+            }
+
+            create_connections_info_packet(tls_buffer);
+
+            cb->connection->send_response_sync(tls_buffer
+                , sizeof(PacketConnectionsInfo));
+        };
 
     handlers[(int)PacketType::REQ_CRC_VERIFY]
         = [](std::shared_ptr<ConnectionBuffer> cb)

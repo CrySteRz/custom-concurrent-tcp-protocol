@@ -19,7 +19,7 @@ int main()
     struct sockaddr_in server_addr;
     uint8_t            receive_buffer[BUFFER_SIZE] = {0};
     uint8_t            send_buffer[BUFFER_SIZE]    = {0};
-    char               input[BUFFER_SIZE];
+    char               input[1024];
     sock = socket(AF_INET, SOCK_STREAM, 0);
     if(sock == -1)
     {
@@ -41,7 +41,7 @@ int main()
     while(1)
     {
         printf(">>> ");
-        scanf("%2047[^\n]%*c", input);
+        scanf("%1023[^\n]%*c", input);
         auto resp = Menu::parse_command_to_packets(input);
 
         if(!resp.has_value())

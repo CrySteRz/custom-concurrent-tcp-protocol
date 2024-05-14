@@ -44,6 +44,15 @@ struct PacketTransferFileStart
     char         file_name[MAX_FILENAME_LEN];
 };
 
+//Client connection statuses
+struct PacketConnectionsInfo
+{
+    PacketHeader header;
+    size_t       active_connection_count;
+    size_t       pending_connection_count;
+    size_t       completed_packets;
+};
+
 enum class Format : uint8_t
 {
     ZTSD, GZIP, XZ, LZMA, LZ4
