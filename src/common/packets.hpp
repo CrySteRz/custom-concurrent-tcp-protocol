@@ -1,6 +1,7 @@
 #pragma once
 #include "../server/server_info.hpp"
 #include "protocol.hpp"
+#include <cstdint>
 #include <cstdio>
 
 #define MAX_FILES        128
@@ -99,4 +100,23 @@ struct PacketLogin
     PacketHeader header;
     char         username[64];
     char         password[64];
+};
+
+struct PacketOpenFile
+{
+    PacketHeader header;
+    char         path[255];
+};
+
+struct PacketOpenedFileInfo
+{
+    PacketHeader header;
+    uint64_t     chunks;
+    char         file_name[255];
+};
+
+struct PacketDownloadChunk
+{
+    PacketHeader header;
+    uint64_t     chunk_index;
 };

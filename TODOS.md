@@ -10,6 +10,7 @@
 
 # Add
 Total disk usage of tmp folder in status response
+Middleware to handle admin auth and normal user auth, maybe have three arrays of handlers, one for each auth state (not logged, client, admin)
 
 # Settings
 Max file size

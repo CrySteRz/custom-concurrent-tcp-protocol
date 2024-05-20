@@ -88,6 +88,33 @@ void parse_seting_packet_and_set(SetSettingPacket p)
     }
 }
 
+int64_t create_chunk_packet(uint8_t* buffer, size_t chunk_index, int fd)
+{
+    auto& p = *reinterpret_cast<PacketTransferFileChunk*>(buffer);
+
+    uint16_t max_chunk_size = UINT16_MAX - sizeof(PacketHeader);
+    off_t    offset         = chunk_index * max_chunk_size;
+    if(lseek(fd, offset, SEEK_SET) != offset)
+    {
+        perror("Failed to seek to chunk position");
+        close(fd);
+        return -1;
+    }
+
+    size_t bytes_read = read(fd, p.file_data, max_chunk_size);
+    if(bytes_read < 0)
+    {
+        perror("Failed to read chunk from file");
+        close(fd);
+        return -1;
+    }
+
+    p.header.command    = PacketType::RESP_FILE_CHUNK;
+    p.header.total_size = bytes_read + sizeof(PacketHeader);
+
+    return 0;
+}
+
 void create_current_user_packet(std::string& id, uint8_t* buffer)
 {
     auto& p = *reinterpret_cast<PacketCurrentUser*>(buffer);
@@ -114,6 +141,15 @@ void create_server_status_packet(uint8_t* buffer)
     p.cpu_usage         = ServerInfo::get_cpu_usage_percentage();
     p.memory_info       = ServerInfo::get_memory_usage();
     p.uptime_seconds    = ServerInfo::get_system_uptime_seconds();
+}
+
+void create_chunk_info_packet(uint8_t* buffer, uint64_t chunk_count, char* file_name)
+{
+    auto& p = *reinterpret_cast<PacketOpenedFileInfo*>(buffer);
+    p.header.command    = PacketType::RESP_FILE_OPENED;
+    p.header.total_size = sizeof(PacketOpenedFileInfo);
+    p.chunks            = chunk_count;
+    strcpy(p.file_name, file_name);
 }
 
 void create_connections_info_packet(uint8_t* buffer)
@@ -175,6 +211,66 @@ void ClientController::initialize()
         = [](std::shared_ptr<ConnectionBuffer> cb)
         {
             cb->connection->id.clear();
+            send_sample_resp(cb, tls_buffer, PacketType::RESP_OK);
+        };
+
+    handlers[(int)PacketType::REQ_FILE_OPEN]
+        = [](std::shared_ptr<ConnectionBuffer> cb)
+        {
+            auto in_packet = *reinterpret_cast<PacketOpenFile*>(cb->buffer);
+
+            char file_path[512];
+            sprintf(file_path, "./tmp/%s/%s", cb->connection->id.c_str(), in_packet.path);
+            int file = open(file_path, O_RDWR, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
+            if(file <= 0)
+            {
+                send_sample_resp(cb, tls_buffer, PacketType::RESP_NO_SUCH_FILE);
+                return;
+            }
+            struct stat file_stat;
+            if(fstat(file, &file_stat) != 0)
+            {
+                send_sample_resp(cb, tls_buffer, PacketType::RESP_NO_SUCH_FILE);
+                return;
+            }
+            off_t    file_size      = file_stat.st_size;
+            uint16_t max_chunk_size = UINT16_MAX - sizeof(PacketHeader);
+            size_t   chunk_count    = (file_size / max_chunk_size) + (file_size % max_chunk_size != 0);
+
+
+            cb->connection->download_fd = file;
+
+            create_chunk_info_packet(tls_buffer, chunk_count, in_packet.path);
+            cb->connection->send_response_sync(tls_buffer
+                , sizeof(PacketOpenedFileInfo));
+        };
+
+    handlers[(int)PacketType::REQ_FILE_DOWNLOAD_CHUNK]
+        = [](std::shared_ptr<ConnectionBuffer> cb)
+        {
+            auto    in_packet = *reinterpret_cast<PacketDownloadChunk*>(cb->buffer);
+            int64_t output    = create_chunk_packet(tls_buffer, in_packet.chunk_index, cb->connection->download_fd);
+            if(output < 0)
+            {
+                cb->connection->download_fd = 0;
+                send_sample_resp(cb, tls_buffer, PacketType::RESP_NO_SUCH_FILE);
+            }
+            auto out_packet = *reinterpret_cast<PacketTransferFileChunk*>(tls_buffer);
+
+            cb->connection->send_response_sync(tls_buffer
+                , out_packet.header.total_size);
+        };
+
+    handlers[(int)PacketType::REQ_FILE_CLOSE]
+        = [](std::shared_ptr<ConnectionBuffer> cb)
+        {
+            if(close(cb->connection->download_fd) < 0)
+            {
+                close(cb->connection->download_fd);
+                cb->connection->download_fd = 0;
+                send_sample_resp(cb, tls_buffer, PacketType::RESP_NO_SUCH_FILE);
+                return;
+            }
             send_sample_resp(cb, tls_buffer, PacketType::RESP_OK);
         };
 
@@ -283,7 +379,8 @@ void ClientController::initialize()
 void ClientController::process_packet(std::shared_ptr<ConnectionBuffer> cb)
 {
     auto packet_type = cb->get_packet_type();
-    if((packet_type != PacketType::REQ_LOGIN) && (packet_type != PacketType::REQ_PING) && (packet_type != PacketType::REQ_LOGOUT) && cb->connection->id.empty())
+    if((packet_type != PacketType::REQ_LOGIN) && (packet_type != PacketType::REQ_PING) && (packet_type != PacketType::REQ_LOGOUT)
+        && cb->connection->id.empty())
     {
         send_resp_unauthorized(cb, tls_buffer);
         return;

@@ -23,6 +23,13 @@ enum class PacketType : uint8_t
     , REQ_PING
     , REQ_LOGOUT
     , REQ_GET_CURRENT_USER
+    , REQ_FILE_OPEN
+    , REQ_FILE_DOWNLOAD_CHUNK
+    , REQ_FILE_CLOSE
+    , RESP_NO_SUCH_FILE
+    , RESP_FILE_OPENED
+    , RESP_FILE_CHUNK
+    , RESP_FILE_CLOSED
     , RESP_CONTINUE
     , RESP_OK
     , RESP_CRC_FAILED
@@ -57,12 +64,14 @@ struct ConnectionWrapper
     uint8_t     buffer[UINT16_MAX];
     uint16_t    buffer_pos;
     bool        is_admin;
-    int         fd = 0;
+    int         fd          = 0;
+    int         download_fd = 0;
     std::string id;
 
     ~ConnectionWrapper()
     {
         close(fd);
+        close(download_fd);
         char dir_path[255];
         sprintf(dir_path, "./tmp/%s", id.c_str());
         DIR* dir = opendir(dir_path);

@@ -59,7 +59,7 @@ int main()
             }
             recv_from_server(sock, receive_buffer, sizeof(receive_buffer));
 
-            if(Menu::handle_response_packet(receive_buffer))
+            if(Menu::handle_response_packet(receive_buffer, sock))
             {
                 break;
             }

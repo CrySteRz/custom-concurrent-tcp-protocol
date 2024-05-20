@@ -61,6 +61,18 @@ public:
         return packet;
     }
 
+    static Packet create_open_file_packet(char* file_path)
+    {
+        Packet          p;
+        PacketOpenFile* packet = reinterpret_cast<PacketOpenFile*>(&p);
+        packet->header.command = PacketType::REQ_FILE_OPEN;
+        packet->header.version = 0;
+        strcpy(packet->path, file_path);
+        packet->header.total_size = sizeof(PacketOpenFile);
+
+        return p;
+    }
+
     static Packet create_get_id_packet()
     {
         return create_sample_packet(PacketType::REQ_GET_CURRENT_USER);

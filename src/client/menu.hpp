@@ -5,7 +5,10 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
+#include <fcntl.h>
 #include <optional>
+#include <sys/stat.h>
+#include <unistd.h>
 
 void print_settings(const GetSettingsPacket& p)
 {
@@ -34,6 +37,35 @@ inline std::vector<const char*> extract_file_paths(const char* input)
     return file_paths;
 }
 
+#define BUFFER_SIZE UINT16_MAX
+void handle_file_opened_resp(PacketOpenedFileInfo p, int sock)
+{
+    uint8_t receive_buffer[BUFFER_SIZE] = {0};
+    int     file                        = open(p.file_name, O_RDWR | O_CREAT, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
+
+    //Send a request for each chunk and append the response bytes to the file
+    for(size_t chunk = 0; chunk != p.chunks; chunk++)
+    {
+        PacketDownloadChunk p;
+        p.header.command    = PacketType::REQ_FILE_DOWNLOAD_CHUNK;
+        p.chunk_index       = chunk;
+        p.header.total_size = sizeof(PacketDownloadChunk);
+        if(send(sock, &p, p.header.total_size, 0) == -1)
+        {
+            perror("send");
+            break;
+        }
+        recv_from_server(sock, receive_buffer, sizeof(receive_buffer));
+        const PacketTransferFileChunk resp
+            = *reinterpret_cast<PacketTransferFileChunk*>(receive_buffer);
+
+        write(file, resp.file_data, resp.header.total_size - sizeof(PacketHeader));
+    }
+
+    close(file);
+    printf("Downloaded file\n");
+}
+
 class Menu
 {
     enum Command : uint8_t
@@ -50,6 +82,13 @@ public:
         if(strncmp(input, "status", 6) == 0)
         {
             auto packet = PacketController::create_server_status_packet();
+
+            return std::vector<Packet>{packet};
+        }
+
+        if(strncmp(input, "open", 4) == 0)
+        {
+            auto packet = PacketController::create_open_file_packet(input + 5);
 
             return std::vector<Packet>{packet};
         }
@@ -153,7 +192,7 @@ public:
         }
     }
 
-    static bool handle_response_packet(uint8_t* buffer)
+    static bool handle_response_packet(uint8_t* buffer, int sock)
     {
         const Packet& r
             = *reinterpret_cast<Packet*>(buffer);
@@ -166,6 +205,14 @@ public:
                 const PacketCurrentUser& resp
                     = *reinterpret_cast<PacketCurrentUser*>(buffer);
                 printf("Current user id:%s\n", resp.id);
+                break;
+            }
+            case PacketType::RESP_FILE_OPENED:
+            {
+                const PacketOpenedFileInfo& resp
+                    = *reinterpret_cast<PacketOpenedFileInfo*>(buffer);
+                printf("Handling downloading file\n");
+                handle_file_opened_resp(resp, sock);
                 break;
             }
             case PacketType::RESP_CONNECTIONS_INFO:
