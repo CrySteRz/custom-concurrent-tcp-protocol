@@ -4,9 +4,6 @@
 #include <cstdint>
 #include <cstdio>
 
-#define MAX_FILES        128
-#define MAX_FILENAME_LEN 256
-
 struct ServerStatusPacket
 {
     PacketHeader header;
@@ -119,4 +116,16 @@ struct PacketDownloadChunk
 {
     PacketHeader header;
     uint64_t     chunk_index;
+};
+
+struct PacketCurrentDirectory
+{
+    PacketHeader header;
+    char         cwd[512];
+};
+
+struct PacketChangeCurrentDirectory
+{
+    PacketHeader header;
+    char         new_wd[512];
 };

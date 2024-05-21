@@ -22,7 +22,6 @@ inline bool recv_from_server(uint32_t socket, uint8_t* buffer, size_t length)
     const Packet packet      = *reinterpret_cast<Packet*>(buffer);
     const auto   packet_size = packet.header.total_size;
 
-    printf("Psz from recv: %d\n", packet_size);
     if(packet_size == 4)
     {
         return true;

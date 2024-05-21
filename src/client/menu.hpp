@@ -86,9 +86,23 @@ public:
             return std::vector<Packet>{packet};
         }
 
+        if(strncmp(input, "cwd", 3) == 0)
+        {
+            auto packet = PacketController::create_get_cwd_packet();
+
+            return std::vector<Packet>{packet};
+        }
+
         if(strncmp(input, "open", 4) == 0)
         {
             auto packet = PacketController::create_open_file_packet(input + 5);
+
+            return std::vector<Packet>{packet};
+        }
+
+        if(strncmp(input, "cd", 2) == 0)
+        {
+            auto packet = PacketController::create_change_wd_packet(input + 3);
 
             return std::vector<Packet>{packet};
         }
@@ -179,7 +193,7 @@ public:
 
     static void list_files(const PacketFileList& p)
     {
-        printf("There are %d files uploaded!\n", p.file_count);
+        printf("There are %d files in the current directory!\n", p.file_count);
 
         for(size_t i = 0; i < p.file_count; i++)
         {
@@ -205,6 +219,13 @@ public:
                 const PacketCurrentUser& resp
                     = *reinterpret_cast<PacketCurrentUser*>(buffer);
                 printf("Current user id:%s\n", resp.id);
+                break;
+            }
+            case PacketType::RESP_CURRENT_DIRECTORY:
+            {
+                const PacketCurrentDirectory& resp
+                    = *reinterpret_cast<PacketCurrentDirectory*>(buffer);
+                printf("Current directory: %s\n", resp.cwd);
                 break;
             }
             case PacketType::RESP_FILE_OPENED:
@@ -280,6 +301,13 @@ public:
             case PacketType::RESP_BAD_LOGIN:
             {
                 printf("Bad username/password\n");
+                return true;
+            }
+
+            //TODO: Vezi de ce nu intra cand dai send la CMakeFiles/3.26.4/CMakeDetermineCompilerABI_CXX.bin de ex, une nu e file_name ci e path
+            case PacketType::RESP_IO_ERROR:
+            {
+                printf("IO Error\n");
                 return true;
             }
 

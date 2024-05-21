@@ -1,6 +1,5 @@
 #include <atomic>
 #include <cerrno>
-#include <chrono>
 #include <csignal>
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -13,21 +12,13 @@
 #include "state.hpp"
 #include <fcntl.h>
 #include <netinet/in.h>
+#include "io.hpp"
 
 #include "client_controller.hpp"
 #include "protocol.hpp"
 
 #define PORT    1312
 #define BACKLOG UINT16_MAX
-
-void make_socket_non_blocking(int socket_fd)
-{
-    int flags = fcntl(socket_fd, F_GETFL, 0);
-    if(fcntl(socket_fd, F_SETFL, flags | O_NONBLOCK) == -1)
-    {
-        perror("Cannot make nonblocking");
-    }
-}
 
 void handle_packets()
 {
@@ -218,13 +209,12 @@ void TerminationRequestHandler(int32_t signal)
 
 int main()
 {
-    //TODO: Fix ctrl + c
     (void)::signal(SIGINT
         , &TerminationRequestHandler);                   //Interrupt signal (CTRL + C)
     (void)::signal(SIGTERM, &TerminationRequestHandler); //Termination request
     (void)::signal(SIGKILL, &TerminationRequestHandler);
 
-    mkdir("./tmp", 0777);
+    mkdir(SERVER_FILES_DIR, 0777);
     srand((unsigned)time(0));
     ClientController::initialize();
 

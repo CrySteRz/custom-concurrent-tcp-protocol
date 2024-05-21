@@ -7,6 +7,7 @@
 #include <filesystem>
 #include <sys/socket.h>
 #include <thread>
+#include "constants.hpp"
 
 enum class PacketType : uint8_t
 {
@@ -26,7 +27,10 @@ enum class PacketType : uint8_t
     , REQ_FILE_OPEN
     , REQ_FILE_DOWNLOAD_CHUNK
     , REQ_FILE_CLOSE
-    , RESP_NO_SUCH_FILE
+    , REQ_CURRENT_DIRECTORY
+    , REQ_CHANGE_WORKING_DIRECTORY
+    , RESP_CURRENT_DIRECTORY
+    , RESP_IO_ERROR
     , RESP_FILE_OPENED
     , RESP_FILE_CHUNK
     , RESP_FILE_CLOSED
@@ -63,6 +67,7 @@ struct ConnectionWrapper
     uint32_t    socket_fd;
     uint8_t     buffer[UINT16_MAX];
     uint16_t    buffer_pos;
+    std::string current_dir;
     bool        is_admin;
     int         fd          = 0;
     int         download_fd = 0;
@@ -73,11 +78,12 @@ struct ConnectionWrapper
         close(fd);
         close(download_fd);
         char dir_path[255];
-        sprintf(dir_path, "./tmp/%s", id.c_str());
+        sprintf(dir_path, "%s/%s", SERVER_FILES_DIR, id.c_str());
         DIR* dir = opendir(dir_path);
         if(dir)
         {
-            std::filesystem::remove_all(dir_path);
+            //TODO: Reenable after debug
+            //std::filesystem::remove_all(dir_path);
         }
     }
 
@@ -121,5 +127,4 @@ struct ConnectionBuffer
     }
     ConnectionWrapper* connection;
     uint8_t            buffer[UINT16_MAX];
-
 };

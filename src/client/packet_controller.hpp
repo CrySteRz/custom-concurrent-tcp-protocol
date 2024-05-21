@@ -61,16 +61,33 @@ public:
         return packet;
     }
 
-    static Packet create_open_file_packet(char* file_path)
+    static Packet create_open_file_packet(char* file_name)
     {
         Packet          p;
         PacketOpenFile* packet = reinterpret_cast<PacketOpenFile*>(&p);
         packet->header.command = PacketType::REQ_FILE_OPEN;
         packet->header.version = 0;
-        strcpy(packet->path, file_path);
+        strcpy(packet->path, file_name);
         packet->header.total_size = sizeof(PacketOpenFile);
 
         return p;
+    }
+
+    static Packet create_change_wd_packet(char* new_fp)
+    {
+        Packet                        p;
+        PacketChangeCurrentDirectory* packet = reinterpret_cast<PacketChangeCurrentDirectory*>(&p);
+        packet->header.command = PacketType::REQ_CHANGE_WORKING_DIRECTORY;
+        packet->header.version = 0;
+        strcpy(packet->new_wd, new_fp);
+        packet->header.total_size = sizeof(PacketChangeCurrentDirectory);
+
+        return p;
+    }
+
+    static Packet create_get_cwd_packet()
+    {
+        return create_sample_packet(PacketType::REQ_CURRENT_DIRECTORY);
     }
 
     static Packet create_get_id_packet()
