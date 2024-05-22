@@ -134,3 +134,25 @@ inline bool remove_directory(const char* directory_name)
 {
     return std::filesystem::remove_all(directory_name) > 0;
 }
+
+#include <filesystem>
+namespace fs = std::filesystem;
+inline bool is_path_within_user_dir(const fs::path& path, const fs::path& user_dir)
+{
+    auto canonical_path     = fs::weakly_canonical(path);
+    auto canonical_user_dir = fs::weakly_canonical(user_dir);
+    return canonical_path.string().find(canonical_user_dir.string()) == 0;
+}
+
+inline bool move_file(const fs::path& source, const fs::path& destination)
+{
+    try
+    {
+        fs::rename(source, destination);
+        return true;
+    }
+    catch(fs::filesystem_error& e)
+    {
+        return false;
+    }
+}

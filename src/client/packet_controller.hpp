@@ -97,6 +97,19 @@ public:
         return p;
     }
 
+    static Packet create_mv_packet(char* path1, char* path2)
+    {
+        Packet          p;
+        PacketMoveFile* packet = reinterpret_cast<PacketMoveFile*>(&p);
+        packet->header.command = PacketType::REQ_MOVE_FILE;
+        packet->header.version = 0;
+        strcpy(packet->first_path, path1);
+        strcpy(packet->second_path, path2);
+        packet->header.total_size = sizeof(PacketMoveFile);
+
+        return p;
+    }
+
     static Packet create_change_wd_packet(char* new_fp)
     {
         Packet                        p;

@@ -65,6 +65,20 @@ void handle_file_opened_resp(PacketOpenedFileInfo p, int sock)
     close(file);
     printf("Downloaded file\n");
 }
+void parse_mv_command(const char* command, char** path1, char** path2)
+{
+    char* cmd_copy = strdup(command);
+
+    char* token = strtok(cmd_copy, " ");
+
+    token  = strtok(NULL, " ");
+    *path1 = strdup(token);
+
+    token  = strtok(NULL, " ");
+    *path2 = strdup(token);
+
+    free(cmd_copy);
+}
 
 class Menu
 {
@@ -117,6 +131,15 @@ public:
         if(strncmp(input, "cd", 2) == 0)
         {
             auto packet = PacketController::create_change_wd_packet(input + 3);
+
+            return std::vector<Packet>{packet};
+        }
+
+        if(strncmp(input, "mv", 2) == 0)
+        {
+            char* path1, * path2;
+            parse_mv_command(input, &path1, &path2);
+            auto packet = PacketController::create_mv_packet(path1, path2);
 
             return std::vector<Packet>{packet};
         }
@@ -318,7 +341,6 @@ public:
                 return true;
             }
 
-            //TODO: Vezi de ce nu intra cand dai send la CMakeFiles/3.26.4/CMakeDetermineCompilerABI_CXX.bin de ex, une nu e file_name ci e path
             case PacketType::RESP_IO_ERROR:
             {
                 printf("IO Error\n");

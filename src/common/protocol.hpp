@@ -19,6 +19,7 @@ enum class PacketType : uint8_t
     , REQ_GET_SETTINGS
     , REQ_SET_SETTING
     , REQ_REMOVE_PATH
+    , REQ_MOVE_FILE
     , REQ_LOGIN
     , REQ_FILE_LIST
     , REQ_CONNECTIONS_INFO

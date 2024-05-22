@@ -191,6 +191,35 @@ void ClientController::initialize()
             send_sample_resp(cb, tls_buffer, PacketType::RESP_OK);
         };
 
+    handlers[(int)PacketType::REQ_MOVE_FILE]
+        = [](std::shared_ptr<ConnectionBuffer> cb)
+        {
+            auto in_packet = *reinterpret_cast<PacketMoveFile*>(cb->buffer);
+
+            auto user_dir = "./tmp/" + cb->connection->id;
+
+            fs::path user_dir_path    = fs::weakly_canonical(user_dir);
+            fs::path current_dir_path = fs::weakly_canonical(cb->connection->current_dir);
+
+            fs::path source      = fs::weakly_canonical(current_dir_path / in_packet.first_path);
+            fs::path destination = fs::weakly_canonical(current_dir_path / in_packet.second_path);
+
+            if(!is_path_within_user_dir(source, user_dir_path) || !is_path_within_user_dir(destination, user_dir_path))
+            {
+                send_sample_resp(cb, tls_buffer, PacketType::RESP_IO_ERROR);
+                return;
+            }
+
+            if(!move_file(source, destination))
+            {
+                send_sample_resp(cb, tls_buffer, PacketType::RESP_IO_ERROR);
+                return;
+            }
+
+            send_sample_resp(cb, tls_buffer, PacketType::RESP_OK);
+        };
+
+
     handlers[(int)PacketType::REQ_PING]
         = [](std::shared_ptr<ConnectionBuffer> cb)
         {

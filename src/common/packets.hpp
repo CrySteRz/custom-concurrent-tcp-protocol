@@ -129,3 +129,10 @@ typedef PacketCurrentDirectory PacketChangeCurrentDirectory;
 typedef PacketCurrentDirectory PacketRemovePath;
 
 typedef PacketCurrentDirectory PacketMakeDirectory;
+
+struct PacketMoveFile
+{
+    PacketHeader header;
+    char         first_path[512];
+    char         second_path[512];
+};
