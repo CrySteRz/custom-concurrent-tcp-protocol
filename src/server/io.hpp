@@ -135,6 +135,7 @@ inline bool remove_directory(const char* directory_name)
     return std::filesystem::remove_all(directory_name) > 0;
 }
 
+
 #include <filesystem>
 namespace fs = std::filesystem;
 inline bool is_path_within_user_dir(const fs::path& path, const fs::path& user_dir)

@@ -4,6 +4,8 @@
 #include <cstdint>
 #include <cstdio>
 
+#define MAX_PATH_LENGTH 512
+
 struct ServerStatusPacket
 {
     PacketHeader header;
@@ -54,6 +56,10 @@ struct PacketConnectionsInfo
 enum class Format : uint8_t
 {
     ZTSD, GZIP, XZ, LZMA, LZ4
+};
+enum class Level : uint8_t
+{
+    FASTEST, FAST, NORMAL, GOOD, BEST
 };
 
 struct PacketArchiveFiles
@@ -135,4 +141,13 @@ struct PacketMoveFile
     PacketHeader header;
     char         first_path[512];
     char         second_path[512];
+};
+
+struct PacketCompression
+{
+    PacketHeader header;
+    Format       format;
+    Level        compression_level;
+    bool         compress_all;
+    char         paths[][MAX_PATH_LENGTH];
 };

@@ -128,6 +128,11 @@ public:
             return std::vector<Packet>{packet};
         }
 
+        if (strncmp(input, "compress", 8) == 0)
+        {
+            return handle_compress_command(input + 9);
+        }
+
         if(strncmp(input, "cd", 2) == 0)
         {
             auto packet = PacketController::create_change_wd_packet(input + 3);
@@ -228,6 +233,105 @@ public:
         return {};
     }
 
+    static std::optional<std::vector<Packet>> handle_compress_command(const char* input)
+    {
+        char* input_copy = strdup(input);
+        char* token = strtok(input_copy, " ");
+
+        std::string format_str;
+        Level compression_level = Level::NORMAL;
+        bool compress_all = false;
+        std::vector<std::string> paths;
+
+        while (token != nullptr)
+        {
+            if (strcmp(token, "--level") == 0)
+            {
+                token = strtok(nullptr, " ");
+                if (token != nullptr)
+                {
+                    std::string level_str = token;
+                    if (level_str == "FASTEST")
+                    {
+                        compression_level = Level::FASTEST;
+                    }
+                    else if (level_str == "FAST")
+                    {
+                        compression_level = Level::FAST;
+                    }
+                    else if (level_str == "NORMAL")
+                    {
+                        compression_level = Level::NORMAL;
+                    }
+                    else if (level_str == "GOOD")
+                    {
+                        compression_level = Level::GOOD;
+                    }
+                    else if (level_str == "BEST")
+                    {
+                        compression_level = Level::BEST;
+                    }
+                    else
+                    {
+                        printf("Unknown level: %s\n", level_str.c_str());
+                        free(input_copy);
+                        return {};
+                    }
+                }
+            }
+            else if (strcmp(token, "--format") == 0)
+            {
+                token = strtok(nullptr, " ");
+                if (token != nullptr)
+                {
+                    format_str = token;
+                }
+            }
+            else if (strcmp(token, "*") == 0)
+            {
+                compress_all = true;
+            }
+            else
+            {
+                paths.emplace_back(token);
+            }
+
+            token = strtok(nullptr, " ");
+        }
+
+        free(input_copy);
+
+        Format format;
+        if (format_str == "ZTSD")
+        {
+            format = Format::ZTSD;
+        }
+        else if (format_str == "GZIP")
+        {
+            format = Format::GZIP;
+        }
+        else if (format_str == "XZ")
+        {
+            format = Format::XZ;
+        }
+        else if (format_str == "LZMA")
+        {
+            format = Format::LZMA;
+        }
+        else if (format_str == "LZ4")
+        {
+            format = Format::LZ4;
+        }
+        else
+        {
+            printf("Unknown format: %s\n", format_str.c_str());
+            return {};
+        }
+
+        auto packet = PacketController::create_compress_packet(format, compression_level, compress_all, paths);
+        return std::vector<Packet>{packet};
+    }
+
     static void list_files(const PacketFileList& p)
     {
         printf("There are %d files in the current directory!\n", p.file_count);
@@ -247,7 +351,7 @@ public:
     {
         const Packet& r
             = *reinterpret_cast<Packet*>(buffer);
-        printf("Packet: %d\n", r.header.command);
+        printf("Packet: %d\n", static_cast<int>(r.header.command));
 
         switch(r.header.command)
         {

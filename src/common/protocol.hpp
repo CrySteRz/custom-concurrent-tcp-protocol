@@ -32,6 +32,7 @@ enum class PacketType : uint8_t
     , REQ_CURRENT_DIRECTORY
     , REQ_CHANGE_WORKING_DIRECTORY
     , REQ_MKDIR
+    , REQ_COMPRESS
     , RESP_CURRENT_DIRECTORY
     , RESP_IO_ERROR
     , RESP_FILE_OPENED
@@ -50,6 +51,7 @@ enum class PacketType : uint8_t
     , RESP_CONNECTIONS_INFO
     , RESP_PONG
     , RESP_FILE_LIST
+    , RESP_COMPRESS
 };
 
 struct PacketHeader

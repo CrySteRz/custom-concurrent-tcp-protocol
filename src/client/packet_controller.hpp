@@ -63,6 +63,27 @@ public:
         return p;
     }
 
+    static Packet create_compress_packet(Format format, uint8_t compression_level, bool compress_all, const std::vector<std::string>& paths)
+    {
+        uint16_t path_count = static_cast<uint16_t>(paths.size());
+        size_t size = sizeof(PacketCompression) + path_count * MAX_PATH_LENGTH;
+        PacketCompression* packet = reinterpret_cast<PacketCompression*>(new uint8_t[size]);
+
+        packet->header.command = PacketType::REQ_COMPRESS;
+        packet->header.version = 0;
+        packet->header.total_size = size;
+        packet->format = format;
+        packet->compression_level = compression_level;
+        packet->compress_all = compress_all;
+
+        for (uint16_t i = 0; i < path_count; ++i)
+        {
+            strncpy(packet->paths[i], paths[i].c_str(), MAX_PATH_LENGTH);
+        }
+
+        return *reinterpret_cast<Packet*>(packet);
+    }
+
     static Packet create_remove_path_packet(char* str)
     {
         Packet            p;
