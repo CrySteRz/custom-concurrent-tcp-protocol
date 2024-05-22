@@ -121,7 +121,6 @@ struct ConnectionBuffer
 {
     PacketType get_packet_type()
     {
-        //TODO: Enable this after everything is done
         if((connection->buffer[1] < 0) || (connection->buffer[1] > (int)PacketType::RESP_FILE_LIST))
         {
             return PacketType::REQ_SET_SETTING;
