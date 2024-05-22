@@ -121,11 +121,9 @@ struct PacketDownloadChunk
 struct PacketCurrentDirectory
 {
     PacketHeader header;
-    char         cwd[512];
+    char         path[512];
 };
 
-struct PacketChangeCurrentDirectory
-{
-    PacketHeader header;
-    char         new_wd[512];
-};
+typedef PacketCurrentDirectory PacketChangeCurrentDirectory;
+
+typedef PacketCurrentDirectory PacketRemovePath;

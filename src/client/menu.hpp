@@ -100,6 +100,13 @@ public:
             return std::vector<Packet>{packet};
         }
 
+        if(strncmp(input, "rm", 2) == 0)
+        {
+            auto packet = PacketController::create_remove_path_packet(input + 3);
+
+            return std::vector<Packet>{packet};
+        }
+
         if(strncmp(input, "cd", 2) == 0)
         {
             auto packet = PacketController::create_change_wd_packet(input + 3);
@@ -225,7 +232,7 @@ public:
             {
                 const PacketCurrentDirectory& resp
                     = *reinterpret_cast<PacketCurrentDirectory*>(buffer);
-                printf("Current directory: %s\n", resp.cwd);
+                printf("Current directory: %s\n", resp.path);
                 break;
             }
             case PacketType::RESP_FILE_OPENED:

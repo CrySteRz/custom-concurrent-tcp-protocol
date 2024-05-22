@@ -124,3 +124,13 @@ inline bool is_valid_filename(const char* file_path)
     }
     return true;
 }
+
+inline bool remove_file(const char* file_name)
+{
+    return std::remove(file_name) == 0;
+}
+
+inline bool remove_directory(const char* directory_name)
+{
+    return std::filesystem::remove_all(directory_name) > 0;
+}

@@ -72,12 +72,30 @@ void ClientController::initialize()
                 , sizeof(PacketCurrentDirectory));
         };
 
+    handlers[(int)PacketType::REQ_REMOVE_PATH]
+        = [](std::shared_ptr<ConnectionBuffer> cb)
+        {
+            auto in_packet = *reinterpret_cast<PacketRemovePath*>(cb->buffer);
+            if(!is_valid_filename(in_packet.path))
+            {
+                send_sample_resp(cb, tls_buffer, PacketType::RESP_IO_ERROR);
+                return;
+            }
+            auto path = cb->connection->current_dir + '/' + in_packet.path;
+            if(remove_file(path.c_str()) || remove_directory(path.c_str()))
+            {
+                send_sample_resp(cb, tls_buffer, PacketType::RESP_OK);
+                return;
+            }
+            send_sample_resp(cb, tls_buffer, PacketType::RESP_IO_ERROR);
+        };
+
     handlers[(int)PacketType::REQ_CHANGE_WORKING_DIRECTORY]
         = [](std::shared_ptr<ConnectionBuffer> cb)
         {
             auto packet = *reinterpret_cast<PacketChangeCurrentDirectory*>(cb->buffer);
 
-            std::string new_dir = cd_command(cb->connection->current_dir, packet.new_wd);
+            std::string new_dir = cd_command(cb->connection->current_dir, packet.path);
             if(new_dir.empty())
             {
                 send_sample_resp(cb, tls_buffer, PacketType::RESP_IO_ERROR);

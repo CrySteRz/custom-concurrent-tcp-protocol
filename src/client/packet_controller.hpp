@@ -51,6 +51,18 @@ public:
         return {};
     }
 
+    static Packet create_remove_path_packet(char* str)
+    {
+        Packet            p;
+        PacketRemovePath* packet = reinterpret_cast<PacketRemovePath*>(&p);
+        packet->header.command = PacketType::REQ_REMOVE_PATH;
+        packet->header.version = 0;
+        strcpy(packet->path, str);
+        packet->header.total_size = sizeof(PacketRemovePath);
+
+        return p;
+    }
+
     static Packet create_sample_packet(PacketType command)
     {
         Packet packet;
@@ -79,7 +91,7 @@ public:
         PacketChangeCurrentDirectory* packet = reinterpret_cast<PacketChangeCurrentDirectory*>(&p);
         packet->header.command = PacketType::REQ_CHANGE_WORKING_DIRECTORY;
         packet->header.version = 0;
-        strcpy(packet->new_wd, new_fp);
+        strcpy(packet->path, new_fp);
         packet->header.total_size = sizeof(PacketChangeCurrentDirectory);
 
         return p;

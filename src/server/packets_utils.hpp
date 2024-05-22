@@ -79,7 +79,7 @@ void create_settings_resp_packet(uint8_t* buffer)
 void create_current_dir_packet(std::string& cwd, uint8_t* buffer)
 {
     auto& p = *reinterpret_cast<PacketCurrentDirectory*>(buffer);
-    strncpy(p.cwd, cwd.c_str(), sizeof(p.cwd));
+    strncpy(p.path, cwd.c_str(), sizeof(p.path));
     p.header.command    = PacketType::RESP_CURRENT_DIRECTORY;
     p.header.total_size = sizeof(PacketCurrentDirectory);
 }
