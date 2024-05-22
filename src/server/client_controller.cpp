@@ -90,6 +90,26 @@ void ClientController::initialize()
             send_sample_resp(cb, tls_buffer, PacketType::RESP_IO_ERROR);
         };
 
+    handlers[(int)PacketType::REQ_MKDIR]
+        = [](std::shared_ptr<ConnectionBuffer> cb)
+        {
+            auto in_packet = *reinterpret_cast<PacketMakeDirectory*>(cb->buffer);
+            if(!is_valid_filename(in_packet.path))
+            {
+                send_sample_resp(cb, tls_buffer, PacketType::RESP_IO_ERROR);
+                return;
+            }
+            auto path = cb->connection->current_dir + '/' + in_packet.path;
+
+            if(mkdir(path.c_str(), 0777) != 0)
+            {
+                send_sample_resp(cb, tls_buffer, PacketType::RESP_IO_ERROR);
+                return;
+            }
+
+            send_sample_resp(cb, tls_buffer, PacketType::RESP_OK);
+        };
+
     handlers[(int)PacketType::REQ_CHANGE_WORKING_DIRECTORY]
         = [](std::shared_ptr<ConnectionBuffer> cb)
         {

@@ -51,6 +51,18 @@ public:
         return {};
     }
 
+    static Packet create_mkdir_packet(char* str)
+    {
+        Packet               p;
+        PacketMakeDirectory* packet = reinterpret_cast<PacketMakeDirectory*>(&p);
+        packet->header.command = PacketType::REQ_MKDIR;
+        packet->header.version = 0;
+        strcpy(packet->path, str);
+        packet->header.total_size = sizeof(PacketMakeDirectory);
+
+        return p;
+    }
+
     static Packet create_remove_path_packet(char* str)
     {
         Packet            p;

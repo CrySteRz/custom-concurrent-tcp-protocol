@@ -107,6 +107,13 @@ public:
             return std::vector<Packet>{packet};
         }
 
+        if(strncmp(input, "mkdir", 5) == 0)
+        {
+            auto packet = PacketController::create_mkdir_packet(input + 6);
+
+            return std::vector<Packet>{packet};
+        }
+
         if(strncmp(input, "cd", 2) == 0)
         {
             auto packet = PacketController::create_change_wd_packet(input + 3);

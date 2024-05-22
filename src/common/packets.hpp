@@ -127,3 +127,5 @@ struct PacketCurrentDirectory
 typedef PacketCurrentDirectory PacketChangeCurrentDirectory;
 
 typedef PacketCurrentDirectory PacketRemovePath;
+
+typedef PacketCurrentDirectory PacketMakeDirectory;
