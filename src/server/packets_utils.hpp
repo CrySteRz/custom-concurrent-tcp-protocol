@@ -51,9 +51,9 @@ void create_server_status_packet(uint8_t* buffer)
 
 void create_chunk_info_packet(uint8_t* buffer, uint64_t chunk_count, char* file_name)
 {
-    auto& p = *reinterpret_cast<PacketOpenedFileInfo*>(buffer);
+    auto& p = *reinterpret_cast<PacketDownloadedFileInfo*>(buffer);
     p.header.command    = PacketType::RESP_FILE_OPENED;
-    p.header.total_size = sizeof(PacketOpenedFileInfo);
+    p.header.total_size = sizeof(PacketDownloadedFileInfo);
     p.chunks            = chunk_count;
     strcpy(p.file_name, file_name);
 }

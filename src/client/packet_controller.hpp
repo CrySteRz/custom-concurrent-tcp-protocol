@@ -7,6 +7,8 @@
 #include <cstring>
 #include <optional>
 #include <sys/types.h>
+#include <sys/stat.h>
+#include <vector>
 
 std::optional<Packet> create_set_setting_packet_wrapped(char* value, Setting s)
 {
@@ -63,25 +65,26 @@ public:
         return p;
     }
 
-    static Packet create_compress_packet(Format format, uint8_t compression_level, bool compress_all, const std::vector<std::string>& paths)
+    static Packet create_compress_packet(Format format, Level compression_level, bool compress_all, const std::vector<std::string>& paths, const char* archive_name)
     {
-        uint16_t path_count = static_cast<uint16_t>(paths.size());
-        size_t size = sizeof(PacketCompression) + path_count * MAX_PATH_LENGTH;
-        PacketCompression* packet = reinterpret_cast<PacketCompression*>(new uint8_t[size]);
-
+        Packet               p;
+        PacketCompress* packet = reinterpret_cast<PacketCompress*>(&p);
         packet->header.command = PacketType::REQ_COMPRESS;
         packet->header.version = 0;
-        packet->header.total_size = size;
         packet->format = format;
         packet->compression_level = compression_level;
         packet->compress_all = compress_all;
+        packet->header.total_size = sizeof(PacketCompress);
+        strcpy(packet->archive_name, archive_name);
+        packet->file_count = paths.size();
 
-        for (uint16_t i = 0; i < path_count; ++i)
+        for(size_t i = 0; i < paths.size(); i++)
         {
-            strncpy(packet->paths[i], paths[i].c_str(), MAX_PATH_LENGTH);
+            strcpy(packet->file_names[i], paths[i].c_str());
         }
 
-        return *reinterpret_cast<Packet*>(packet);
+
+        return p;
     }
 
     static Packet create_remove_path_packet(char* str)
@@ -106,14 +109,14 @@ public:
         return packet;
     }
 
-    static Packet create_open_file_packet(char* file_name)
+    static Packet create_download_file_packet(char* file_name)
     {
         Packet          p;
-        PacketOpenFile* packet = reinterpret_cast<PacketOpenFile*>(&p);
+        PacketDownloadFile* packet = reinterpret_cast<PacketDownloadFile*>(&p);
         packet->header.command = PacketType::REQ_FILE_OPEN;
         packet->header.version = 0;
         strcpy(packet->path, file_name);
-        packet->header.total_size = sizeof(PacketOpenFile);
+        packet->header.total_size = sizeof(PacketDownloadFile);
 
         return p;
     }

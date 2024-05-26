@@ -125,6 +125,11 @@ inline bool is_valid_filename(const char* file_path)
     return true;
 }
 
+inline bool does_file_exist(const char* file_name)
+{
+    return std::filesystem::exists(file_name);
+}
+
 inline bool remove_file(const char* file_name)
 {
     return std::remove(file_name) == 0;

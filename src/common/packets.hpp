@@ -55,22 +55,22 @@ struct PacketConnectionsInfo
 
 enum class Format : uint8_t
 {
-    ZTSD, GZIP, XZ, LZMA, LZ4
+    ZSTD, GZIP, XZ, LZMA, LZ4, ZIP
 };
 enum class Level : uint8_t
 {
     FASTEST, FAST, NORMAL, GOOD, BEST
 };
 
-struct PacketArchiveFiles
+struct PacketCompress
 {
     PacketHeader   header;
     Format         format;
-    uint8_t        compression_level;
-    unsigned short file_count;
+    Level          compression_level;
     bool           compress_all;
-    //Max 128 files ig
+    uint8_t        file_count;
     char file_names[MAX_FILES][MAX_FILENAME_LEN];
+    char archive_name[MAX_FILENAME_LEN];
 };
 
 struct PacketFileList
@@ -105,13 +105,13 @@ struct PacketLogin
     char         password[64];
 };
 
-struct PacketOpenFile
+struct PacketDownloadFile
 {
     PacketHeader header;
     char         path[255];
 };
 
-struct PacketOpenedFileInfo
+struct PacketDownloadedFileInfo
 {
     PacketHeader header;
     uint64_t     chunks;
@@ -143,11 +143,3 @@ struct PacketMoveFile
     char         second_path[512];
 };
 
-struct PacketCompression
-{
-    PacketHeader header;
-    Format       format;
-    Level        compression_level;
-    bool         compress_all;
-    char         paths[][MAX_PATH_LENGTH];
-};

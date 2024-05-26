@@ -1,4 +1,3 @@
-#pragma once
 #include "protocol.hpp"
 #include <cstdint>
 #include <functional>

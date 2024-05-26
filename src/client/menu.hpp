@@ -15,6 +15,29 @@ void print_settings(const GetSettingsPacket& p)
     printf("Compression Level: %d\n", p.compression_level);
 }
 
+std::string format_to_string(Format format) {
+    switch (format) {
+        case Format::ZSTD: return "ZSTD";
+        case Format::GZIP: return "GZIP";
+        case Format::XZ: return "XZ";
+        case Format::LZMA: return "LZMA";
+        case Format::LZ4: return "LZ4";
+        case Format::ZIP: return "ZIP";
+        default: return "UNKNOWN";
+    }
+}
+
+std::string level_to_string(Level level) {
+    switch (level) {
+        case Level::FASTEST: return "FASTEST";
+        case Level::FAST: return "FAST";
+        case Level::NORMAL: return "NORMAL";
+        case Level::GOOD: return "GOOD";
+        case Level::BEST: return "BEST";
+        default: return "UNKNOWN";
+    }
+}
+
 void print_connections_info(const PacketConnectionsInfo& p)
 {
 
@@ -38,7 +61,7 @@ inline std::vector<const char*> extract_file_paths(const char* input)
 }
 
 #define BUFFER_SIZE UINT16_MAX
-void handle_file_opened_resp(PacketOpenedFileInfo p, int sock)
+void handle_file_opened_resp(PacketDownloadedFileInfo p, int sock)
 {
     uint8_t receive_buffer[BUFFER_SIZE] = {0};
     int     file                        = open(p.file_name, O_RDWR | O_CREAT, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
@@ -107,9 +130,9 @@ public:
             return std::vector<Packet>{packet};
         }
 
-        if(strncmp(input, "open", 4) == 0)
+        if(strncmp(input, "download", 8) == 0)
         {
-            auto packet = PacketController::create_open_file_packet(input + 5);
+            auto packet = PacketController::create_download_file_packet(input + 9);
 
             return std::vector<Packet>{packet};
         }
@@ -233,104 +256,58 @@ public:
         return {};
     }
 
-    static std::optional<std::vector<Packet>> handle_compress_command(const char* input)
-    {
-        char* input_copy = strdup(input);
-        char* token = strtok(input_copy, " ");
-
-        std::string format_str;
-        Level compression_level = Level::NORMAL;
-        bool compress_all = false;
-        std::vector<std::string> paths;
-
-        while (token != nullptr)
-        {
-            if (strcmp(token, "--level") == 0)
-            {
-                token = strtok(nullptr, " ");
-                if (token != nullptr)
-                {
-                    std::string level_str = token;
-                    if (level_str == "FASTEST")
-                    {
-                        compression_level = Level::FASTEST;
-                    }
-                    else if (level_str == "FAST")
-                    {
-                        compression_level = Level::FAST;
-                    }
-                    else if (level_str == "NORMAL")
-                    {
-                        compression_level = Level::NORMAL;
-                    }
-                    else if (level_str == "GOOD")
-                    {
-                        compression_level = Level::GOOD;
-                    }
-                    else if (level_str == "BEST")
-                    {
-                        compression_level = Level::BEST;
-                    }
-                    else
-                    {
-                        printf("Unknown level: %s\n", level_str.c_str());
-                        free(input_copy);
-                        return {};
-                    }
-                }
-            }
-            else if (strcmp(token, "--format") == 0)
-            {
-                token = strtok(nullptr, " ");
-                if (token != nullptr)
-                {
-                    format_str = token;
-                }
-            }
-            else if (strcmp(token, "*") == 0)
-            {
-                compress_all = true;
-            }
-            else
-            {
-                paths.emplace_back(token);
-            }
-
-            token = strtok(nullptr, " ");
+   static std::optional<std::vector<Packet>> handle_compress_command(const char* input) {
+    std::istringstream iss(input);
+    std::string archive_name, level_str, format_str, temp;
+    std::vector<std::string> paths;
+    Format format = Format::ZSTD;
+    Level compression_level = Level::NORMAL;
+    bool compress_all = false;
+    iss >> archive_name;
+    while (iss >> temp) {
+        if (temp == "--level") {
+            iss >> level_str;
+        } else if (temp == "--format") {
+            iss >> format_str;
+        } else if (temp == "*") {
+            compress_all = true;
+        } else {
+            paths.push_back(temp);
         }
-
-        free(input_copy);
-
-        Format format;
-        if (format_str == "ZTSD")
-        {
-            format = Format::ZTSD;
-        }
-        else if (format_str == "GZIP")
-        {
-            format = Format::GZIP;
-        }
-        else if (format_str == "XZ")
-        {
-            format = Format::XZ;
-        }
-        else if (format_str == "LZMA")
-        {
-            format = Format::LZMA;
-        }
-        else if (format_str == "LZ4")
-        {
-            format = Format::LZ4;
-        }
-        else
-        {
-            printf("Unknown format: %s\n", format_str.c_str());
-            return {};
-        }
-
-        auto packet = PacketController::create_compress_packet(format, compression_level, compress_all, paths);
-        return std::vector<Packet>{packet};
     }
+
+    if (level_str == "FASTEST") {
+        compression_level = Level::FASTEST;
+    } else if (level_str == "FAST") {
+        compression_level = Level::FAST;
+    } else if (level_str == "NORMAL") {
+        compression_level = Level::NORMAL;
+    } else if (level_str == "GOOD") {
+        compression_level = Level::GOOD;
+    } else if (level_str == "BEST") {
+        compression_level = Level::BEST;
+    } else {
+        printf("Using %s as default level\n", level_to_string(compression_level).c_str());
+    }
+
+    if (format_str == "GZIP") {
+        format = Format::GZIP;
+    } else if (format_str == "XZ") {
+        format = Format::XZ;
+    } else if (format_str == "LZMA") {
+        format = Format::LZMA;
+    } else if (format_str == "LZ4") {
+        format = Format::LZ4;
+    } else if (format_str == "ZIP") {
+        format = Format::ZIP;
+    } else {
+        printf("Using %s as default format\n", format_to_string(format).c_str());
+    }
+
+    printf("Creating compress packet\n");
+    Packet packet = PacketController::create_compress_packet(format, compression_level, compress_all, paths, archive_name.c_str());
+    return std::vector<Packet>{packet};
+}
 
     static void list_files(const PacketFileList& p)
     {
@@ -371,8 +348,8 @@ public:
             }
             case PacketType::RESP_FILE_OPENED:
             {
-                const PacketOpenedFileInfo& resp
-                    = *reinterpret_cast<PacketOpenedFileInfo*>(buffer);
+                const PacketDownloadedFileInfo& resp
+                    = *reinterpret_cast<PacketDownloadedFileInfo*>(buffer);
                 printf("Handling downloading file\n");
                 handle_file_opened_resp(resp, sock);
                 break;
@@ -449,6 +426,11 @@ public:
             {
                 printf("IO Error\n");
                 return true;
+            }
+            case PacketType::RESP_COMPRESS:
+            {
+                printf("Compress command was successful\n");
+                break;
             }
 
             default:
