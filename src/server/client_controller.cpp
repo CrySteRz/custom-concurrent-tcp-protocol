@@ -62,6 +62,9 @@ void ClientController::initialize()
     handlers[(int)PacketType::REQ_LOGOUT]
         = [](std::shared_ptr<ConnectionBuffer> cb)
         {
+            if (cb->connection->is_admin) {
+                g_state.b_admin_connected.exchange(false);
+            }
             cb->connection->id.clear();
             send_sample_resp(cb, tls_buffer, PacketType::RESP_OK);
         };
@@ -316,8 +319,16 @@ void ClientController::initialize()
             {
                 cb->connection->id          = db.getID(in_packet.username);
                 cb->connection->current_dir = std::string(SERVER_FILES_DIR) + '/' + cb->connection->id;
+                mkdir(cb->connection->current_dir.c_str(), 0777);
+
                 if(db.isAdmin(in_packet.username))
                 {
+                    if(g_state.b_admin_connected.load(std::memory_order_relaxed))
+                    {
+                        send_sample_resp(cb, tls_buffer, PacketType::RESP_ADMIN_ALREADY_CONNECTED);
+                        return;
+                    }
+                    g_state.b_admin_connected.exchange(true);
                     cb->connection->is_admin = true;
                 }
                 send_sample_resp(cb, tls_buffer, PacketType::RESP_OK);
@@ -329,56 +340,78 @@ void ClientController::initialize()
             }
         };
 
-    handlers[(int)PacketType::REQ_COMPRESS] = [](std::shared_ptr<ConnectionBuffer> cb) {
-        auto in_packet = *reinterpret_cast<PacketCompress*>(cb->buffer);
-        std::string archive_path = cb->connection->current_dir + '/' + in_packet.archive_name;
-        std::vector<std::string> files_to_compress;
+    handlers[(int)PacketType::REQ_COMPRESS] = [](std::shared_ptr<ConnectionBuffer> cb)
+        {
+            auto                     in_packet    = *reinterpret_cast<PacketCompress*>(cb->buffer);
+            std::string              archive_path = cb->connection->current_dir + '/' + in_packet.archive_name;
+            std::vector<std::string> files_to_compress;
 
-        if (in_packet.compress_all) {
-            for (const auto& entry : std::filesystem::recursive_directory_iterator(cb->connection->current_dir + '/')) {
-                if (entry.is_regular_file()) {
-                    files_to_compress.push_back(entry.path().string());
+            if(in_packet.compress_all)
+            {
+                for(const auto& entry : std::filesystem::recursive_directory_iterator(cb->connection->current_dir + '/'))
+                {
+                    if(entry.is_regular_file())
+                    {
+                        files_to_compress.push_back(entry.path().string());
+                    }
                 }
             }
-        } else {
-            for (int i = 0; i < in_packet.file_count; ++i) {
-                std::string file_path = cb->connection->current_dir + '/' + in_packet.file_names[i];
-                if (!does_file_exist(file_path.c_str())) {
-                    send_sample_resp(cb, tls_buffer, PacketType::RESP_IO_ERROR);
-                    return;
+            else
+            {
+                for(int i = 0; i < in_packet.file_count; ++i)
+                {
+                    std::string file_path = cb->connection->current_dir + '/' + in_packet.file_names[i];
+                    if(!does_file_exist(file_path.c_str()))
+                    {
+                        send_sample_resp(cb, tls_buffer, PacketType::RESP_IO_ERROR);
+                        return;
+                    }
+                    files_to_compress.push_back(file_path);
                 }
-                files_to_compress.push_back(file_path);
             }
-        }
 
-        int compression_level = get_compression_level(in_packet.compression_level, in_packet.format);
-        bool success = false;
+            int  compression_level = get_compression_level(in_packet.compression_level, in_packet.format);
+            bool success           = false;
 
-        switch (in_packet.format) {
-            case Format::ZSTD:
-                success = compress_with_zstd(files_to_compress, archive_path, compression_level);
-                break;
-            case Format::GZIP:
-                success = compress_with_gzip(files_to_compress, archive_path, compression_level);
-                break;
-            case Format::XZ:
-            case Format::LZMA:
-                success = compress_with_xz(files_to_compress, archive_path, compression_level);
-                break;
-            case Format::LZ4:
-                success = compress_with_lz4(files_to_compress, archive_path, compression_level);
-                break;
-            case Format::ZIP:
-                success = compress_with_zip(files_to_compress, archive_path, compression_level);
-                break;
-        }
+            switch(in_packet.format)
+            {
+                case Format::ZSTD:
+                {
+                    success = compress_with_zstd(files_to_compress, archive_path, compression_level);
+                    break;
+                }
+                case Format::GZIP:
+                {
+                    success = compress_with_gzip(files_to_compress, archive_path, compression_level);
+                    break;
+                }
+                case Format::XZ:
+                case Format::LZMA:
+                {
+                    success = compress_with_xz(files_to_compress, archive_path, compression_level);
+                    break;
+                }
+                case Format::LZ4:
+                {
+                    success = compress_with_lz4(files_to_compress, archive_path, compression_level);
+                    break;
+                }
+                case Format::ZIP:
+                {
+                    success = compress_with_zip(files_to_compress, archive_path, compression_level);
+                    break;
+                }
+            }
 
-        if (success) {
-            send_sample_resp(cb, tls_buffer, PacketType::RESP_COMPRESS);
-        } else {
-            send_sample_resp(cb, tls_buffer, PacketType::RESP_IO_ERROR);
-        }
-    };
+            if(success)
+            {
+                send_sample_resp(cb, tls_buffer, PacketType::RESP_COMPRESS);
+            }
+            else
+            {
+                send_sample_resp(cb, tls_buffer, PacketType::RESP_IO_ERROR);
+            }
+        };
 
 }
 

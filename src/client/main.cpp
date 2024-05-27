@@ -47,6 +47,7 @@ int main()
         if(!resp.has_value())
         {
             printf("%s isn't a valid command\n", input);
+            printf("\nFor available commands, type 'help <command>'.\n");
             continue;
         }
 

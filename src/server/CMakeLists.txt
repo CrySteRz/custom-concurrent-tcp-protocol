@@ -1,6 +1,6 @@
 include_directories("/usr/include")
 
-add_executable(server main.cpp client_controller.cpp)
+add_executable(server main.cpp connection.cpp client_controller.cpp)
 target_link_libraries(server PRIVATE common db)
 target_link_libraries(server PRIVATE zstd)
 target_link_libraries(server PRIVATE lz4)

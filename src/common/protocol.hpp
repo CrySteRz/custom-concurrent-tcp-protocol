@@ -39,6 +39,7 @@ enum class PacketType : uint8_t
     , RESP_FILE_CHUNK
     , RESP_FILE_CLOSED
     , RESP_CONTINUE
+    , RESP_ADMIN_ALREADY_CONNECTED
     , RESP_OK
     , RESP_CRC_FAILED
     , RESP_SERVER_STATUS_RESPONSE
@@ -65,70 +66,4 @@ struct Packet
 {
     PacketHeader header;
     uint8_t      buffer[UINT16_MAX - sizeof(PacketHeader)];
-};
-
-struct ConnectionWrapper
-{
-    uint32_t    socket_fd;
-    uint8_t     buffer[UINT16_MAX];
-    uint16_t    buffer_pos;
-    std::string current_dir;
-    bool        is_admin;
-    int         fd          = 0;
-    int         download_fd = 0;
-    std::string id;
-
-    ~ConnectionWrapper()
-    {
-        close(fd);
-        close(download_fd);
-        char dir_path[255];
-        sprintf(dir_path, "%s/%s", SERVER_FILES_DIR, id.c_str());
-        DIR* dir = opendir(dir_path);
-        if(dir)
-        {
-            //TODO: Reenable after debug
-            //std::filesystem::remove_all(dir_path);
-        }
-    }
-
-    void send_response_sync(uint8_t* buffer, size_t length)
-    {
-        int sent_bytes = 0;
-
-        while(true)
-        {
-            const int result
-                = send(this->socket_fd, buffer + sent_bytes, length - sent_bytes, 0);
-            if(result == -1)
-            {
-                if((errno == EWOULDBLOCK) || (errno == EAGAIN))
-                {
-                    std::this_thread::sleep_for(std::chrono::milliseconds(1));
-                    continue;
-                }
-                perror("send");
-                return;
-            }
-            sent_bytes += result;
-            if(sent_bytes >= length)
-            {
-                return;
-            }
-        }
-    }
-};
-
-struct ConnectionBuffer
-{
-    PacketType get_packet_type()
-    {
-        if((connection->buffer[1] < 0) || (connection->buffer[1] > (int)PacketType::RESP_FILE_LIST))
-        {
-            return PacketType::REQ_SET_SETTING;
-        }
-        return (PacketType)connection->buffer[1];
-    }
-    ConnectionWrapper* connection;
-    uint8_t            buffer[UINT16_MAX];
 };
