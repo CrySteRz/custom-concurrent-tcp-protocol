@@ -4,6 +4,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <string>
+
 struct ConnectionWrapper
 {
     uint32_t    socket_fd;

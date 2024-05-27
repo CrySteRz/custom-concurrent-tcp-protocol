@@ -21,6 +21,7 @@ std::optional<Packet> create_set_setting_packet_wrapped(char* value, Setting s)
         case Setting::COMPRESSION_LEVEL:
         {
             int parsed = atoi(value);
+            std::cout << "parsed:" << parsed << "\n";
             if((parsed > UINT8_MAX) || (parsed < 0))
             {
                 printf("Value is out of bounds (0..255)\n");
@@ -67,13 +68,13 @@ public:
 
     static Packet create_compress_packet(Format format, Level compression_level, bool compress_all, const std::vector<std::string>& paths, const char* archive_name)
     {
-        Packet               p;
+        Packet          p;
         PacketCompress* packet = reinterpret_cast<PacketCompress*>(&p);
-        packet->header.command = PacketType::REQ_COMPRESS;
-        packet->header.version = 0;
-        packet->format = format;
+        packet->header.command    = PacketType::REQ_COMPRESS;
+        packet->header.version    = 0;
+        packet->format            = format;
         packet->compression_level = compression_level;
-        packet->compress_all = compress_all;
+        packet->compress_all      = compress_all;
         packet->header.total_size = sizeof(PacketCompress);
         strcpy(packet->archive_name, archive_name);
         packet->file_count = paths.size();
@@ -82,7 +83,6 @@ public:
         {
             strcpy(packet->file_names[i], paths[i].c_str());
         }
-
 
         return p;
     }
@@ -111,7 +111,7 @@ public:
 
     static Packet create_download_file_packet(char* file_name)
     {
-        Packet          p;
+        Packet              p;
         PacketDownloadFile* packet = reinterpret_cast<PacketDownloadFile*>(&p);
         packet->header.command = PacketType::REQ_FILE_OPEN;
         packet->header.version = 0;

@@ -86,7 +86,6 @@ public:
         std::string stored_hashed_password = getHashedPassword(username);
         if(!stored_hashed_password.empty() && (hashed_input_password == stored_hashed_password))
         {
-            std::cout << "Login successful." << std::endl;
             return true;
         }
         else

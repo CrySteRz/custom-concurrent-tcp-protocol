@@ -12,26 +12,25 @@
 
 void print_help_message()
 {
-    printf("Available Commands:\n");
-    printf("status - Retrieves the current server status including CPU, memory usage, and uptime.\n");
-    printf("cwd - Gets the current working directory on the server.\n");
-    printf("download <path> - Downloads a file from the specified path on the server.\n");
-    printf("rm <path> - Removes a file or directory at the specified path.\n");
-    printf("mkdir <path> - Creates a new directory at the specified path.\n");
-    printf("compress <archive name> <options> - Compresses files into the specified archive format and level. Options include --level [FASTEST|FAST|NORMAL|GOOD|BEST] and --format [GZIP|XZ|LZMA|LZ4|ZIP].\n");
-    printf("cd <path> - Changes the current directory to the specified path.\n");
-    printf("mv <source> <destination> - Moves or renames a file or directory from source to destination.\n");
-    printf("getid - Retrieves the unique identifier for the current session.\n");
+    printf("Available Commands:\n\n");
+    printf("status - Retrieves the current server status including CPU, memory usage, and uptime.\n\n");
+    printf("cwd - Gets the current working directory on the server.\n\n");
+    printf("download <path> - Downloads a file from the specified path on the server.\n\n");
+    printf("rm <path> - Removes a file or directory at the specified path.\n\n");
+    printf("mkdir <path> - Creates a new directory at the specified path.\n\n");
+    printf("compress <archive name> <options> - Compresses files into the specified archive format and level. Options include --level [FASTEST|FAST|NORMAL|GOOD|BEST] and --format [GZIP|XZ|LZMA|LZ4|ZIP].\n\n");
+    printf("cd <path> - Changes the current directory to the specified path.\n\n");
+    printf("mv <source> <destination> - Moves or renames a file or directory from source to destination.\n\n");
+    printf("getid - Retrieves the unique identifier for the current session.\n\n");
     printf("logout - Logs out from the current session.\n");
-    printf("connections - Displays the number of active and pending connections as well as packets waiting to be processed.\n");
-    printf("ping - Sends a ping to the server to check connectivity.\n");
-    printf("get_settings - Retrieves current settings related to compression and file handling.\n");
-    printf("set <setting> - Updates settings based on the provided parameters.\n");
-    printf("login <username> <password> - Logs into the server with the specified username and password.\n");
-    printf("send <file paths> - Sends one or more files to the server.\n");
-    printf("ls - Lists files in the current directory.\n");
+    printf("connections - Displays the number of active and pending connections as well as packets waiting to be processed.\n\n");
+    printf("ping - Sends a ping to the server to check connectivity.\n\n");
+    printf("get_settings - Retrieves current settings related to compression and file handling.\n\n");
+    printf("set <setting> - Updates settings based on the provided parameters.\n\n");
+    printf("login <username> <password> - Logs into the server with the specified username and password.\n\n");
+    printf("send <file paths> - Sends one or more files to the server.\n\n");
+    printf("ls - Lists files in the current directory.\n\n");
     printf("help - Displays this help message.\n");
-    printf("\nFor more information on each command, type 'help <command>'.\n");
 }
 
 

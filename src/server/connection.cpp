@@ -1,7 +1,9 @@
 #include "connection.hpp"
 #include "constants.hpp"
 #include "state.hpp"
+#include <atomic>
 #include <dirent.h>
+#include <iostream>
 #include <sys/socket.h>
 #include <unistd.h>
 
@@ -9,6 +11,7 @@ ConnectionWrapper::~ConnectionWrapper()
 {
     if(is_admin)
     {
+        std::cout << "An admin disconnected!\n";
         g_state.b_admin_connected.exchange(false);
     }
     close(fd);

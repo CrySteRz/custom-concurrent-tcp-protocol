@@ -62,7 +62,9 @@ void ClientController::initialize()
     handlers[(int)PacketType::REQ_LOGOUT]
         = [](std::shared_ptr<ConnectionBuffer> cb)
         {
-            if (cb->connection->is_admin) {
+            if(cb->connection->is_admin)
+            {
+                std::cout << "An admin disconnected!\n";
                 g_state.b_admin_connected.exchange(false);
             }
             cb->connection->id.clear();
@@ -323,12 +325,16 @@ void ClientController::initialize()
 
                 if(db.isAdmin(in_packet.username))
                 {
-                    if(g_state.b_admin_connected.load(std::memory_order_relaxed))
+                    if(g_state.b_admin_connected.load())
                     {
+                        std::cout << "An admin is already connected!\n";
+                        cb->connection->id.clear();
+                        cb->connection->current_dir.clear();
                         send_sample_resp(cb, tls_buffer, PacketType::RESP_ADMIN_ALREADY_CONNECTED);
                         return;
                     }
-                    g_state.b_admin_connected.exchange(true);
+                    std::cout << "An admin connected!\n";
+                    g_state.b_admin_connected.exchange(false);
                     cb->connection->is_admin = true;
                 }
                 send_sample_resp(cb, tls_buffer, PacketType::RESP_OK);
