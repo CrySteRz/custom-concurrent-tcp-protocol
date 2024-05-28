@@ -21,6 +21,7 @@ void print_help_message()
     printf("compress <archive name> <options> - Compresses files into the specified archive format and level. Options include --level [FASTEST|FAST|NORMAL|GOOD|BEST] and --format [GZIP|XZ|LZMA|LZ4|ZIP].\n\n");
     printf("cd <path> - Changes the current directory to the specified path.\n\n");
     printf("mv <source> <destination> - Moves or renames a file or directory from source to destination.\n\n");
+    printf("cp <source> <destination> - Copies a file or directory from source to destination.\n\n");
     printf("getid - Retrieves the unique identifier for the current session.\n\n");
     printf("logout - Logs out from the current session.\n");
     printf("connections - Displays the number of active and pending connections as well as packets waiting to be processed.\n\n");
@@ -158,15 +159,22 @@ void handle_file_opened_resp(PacketDownloadedFileInfo p, int sock)
 void parse_mv_command(const char* command, char** path1, char** path2)
 {
     char* cmd_copy = strdup(command);
-
     char* token = strtok(cmd_copy, " ");
-
     token  = strtok(NULL, " ");
     *path1 = strdup(token);
-
     token  = strtok(NULL, " ");
     *path2 = strdup(token);
+    free(cmd_copy);
+}
 
+void parse_cp_command(const char* command, char** path1, char** path2)
+{
+    char* cmd_copy = strdup(command);
+    char* token = strtok(cmd_copy, " ");
+    token  = strtok(NULL, " ");
+    *path1 = strdup(token);
+    token  = strtok(NULL, " ");
+    *path2 = strdup(token);
     free(cmd_copy);
 }
 
@@ -235,7 +243,13 @@ public:
             char* path1, * path2;
             parse_mv_command(input, &path1, &path2);
             auto packet = PacketController::create_mv_packet(path1, path2);
-
+            return std::vector<Packet>{packet};
+        }
+        if(strncmp(input, "cp", 2) == 0)
+        {
+            char* path1, * path2;
+            parse_cp_command(input, &path1, &path2);
+            auto packet = PacketController::create_cp_packet(path1, path2);
             return std::vector<Packet>{packet};
         }
 
@@ -301,9 +315,9 @@ public:
             return std::vector<Packet>{PacketController::create_login_packet(username, password)};
         }
 
-        if(strncmp(input, "send", 4) == 0)
+        if(strncmp(input, "upload", 6) == 0)
         {
-            auto file_paths = extract_file_paths(input + 4);
+            auto file_paths = extract_file_paths(input + 7);
 
             std::vector<Packet> packets;
 

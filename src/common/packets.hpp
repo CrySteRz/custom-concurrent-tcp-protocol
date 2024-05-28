@@ -142,4 +142,10 @@ struct PacketMoveFile
     char         first_path[512];
     char         second_path[512];
 };
+struct PacketCopyFile
+{
+    PacketHeader header;
+    char         first_path[512];
+    char         second_path[512];
+};
 
