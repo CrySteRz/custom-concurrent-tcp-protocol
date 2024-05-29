@@ -29,7 +29,7 @@ void print_help_message()
     printf("get_settings - Retrieves current settings related to compression and file handling.\n\n");
     printf("set <setting> - Updates settings based on the provided parameters.\n\n");
     printf("login <username> <password> - Logs into the server with the specified username and password.\n\n");
-    printf("send <file paths> - Sends one or more files to the server.\n\n");
+    printf("upload <file paths> - Sends one or more files to the server.\n\n");
     printf("ls - Lists files in the current directory.\n\n");
     printf("help - Displays this help message.\n");
 }
