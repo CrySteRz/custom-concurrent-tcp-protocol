@@ -35,7 +35,6 @@ enum class PacketType : uint8_t
     , REQ_MKDIR
     , REQ_COMPRESS
     , REQ_CLEAN
-    , REQ_DROP_CONNECTION
     , RESP_CURRENT_DIRECTORY
     , RESP_IO_ERROR
     , RESP_FILE_OPENED

@@ -156,11 +156,7 @@ struct PacketCopyFile
     char         second_path[512];
 };
 
-struct PacketDropConnection
-{
-    PacketHeader header;
-    uint32_t     id;
-};
+
 
 
 

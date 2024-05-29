@@ -38,7 +38,6 @@ void print_admin_help_message(){
     printf("get_settings - Retrieves current settings related to compression and file handling.\n\n");
     printf("set <setting> - Updates settings based on the provided parameters.\n\n");
     printf("connections - Displays the number of active and pending connections as well as packets waiting to be processed.\n\n");
-    printf("drop <id> - Drops the connection with the specified unique identifier.\n\n");
     printf("clean - Cleans up the server by removing all files and directories.\n\n");
 }
 
@@ -243,11 +242,6 @@ public:
         {
             auto packet = PacketController::create_change_wd_packet(input + 3);
 
-            return std::vector<Packet>{packet};
-        }
-        if (strncmp(input, "drop", 4) == 0)
-        {
-            auto packet = PacketController::create_drop_packet(atoi(input + 5));
             return std::vector<Packet>{packet};
         }
 

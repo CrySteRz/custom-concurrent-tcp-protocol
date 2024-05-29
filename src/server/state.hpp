@@ -29,4 +29,4 @@ struct ServerState
     uint8_t    compression_level = 1;
 };
 
-static ServerState g_state;
+extern ServerState g_state;

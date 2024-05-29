@@ -20,6 +20,8 @@
 #define PORT    1312
 #define BACKLOG UINT16_MAX
 
+ServerState g_state;
+
 void handle_packets()
 {
     while(!g_state.completed_packets.empty())
