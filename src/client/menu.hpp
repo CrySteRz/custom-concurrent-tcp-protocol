@@ -245,6 +245,11 @@ public:
 
             return std::vector<Packet>{packet};
         }
+        if (strncmp(input, "drop", 4) == 0)
+        {
+            auto packet = PacketController::create_drop_packet(atoi(input + 5));
+            return std::vector<Packet>{packet};
+        }
 
         if(strncmp(input, "mv", 2) == 0)
         {
@@ -320,6 +325,7 @@ public:
 
             return std::vector<Packet>{packet};
         }
+        
 
         if(strncmp(input, "set", 3) == 0)
         {
@@ -357,20 +363,12 @@ public:
             return packets;
         }
 
-        if(strncmp(input, "get", 3) == 0)
-        {
-            std::vector<Packet> packets;
-        }
-
         if(strncmp(input, "ls", 2) == 0)
         {
             return std::vector<Packet>{PacketController::create_ls_packet()};
         }
-        // if (strncmp(input, "drop", 4) == 0)
-        // {
-        //     auto packet = PacketController::create_drop_packet(input + 5);
-        //     return std::vector<Packet>{packet};
-        // }
+
+        
 
         return {};
     }

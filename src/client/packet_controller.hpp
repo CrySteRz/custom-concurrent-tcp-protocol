@@ -203,6 +203,18 @@ public:
         return create_sample_packet(PacketType::REQ_FILE_LIST);
     }
 
+    static Packet create_drop_packet(uint32_t id)
+    {
+        Packet p;
+        PacketDropConnection* packet = reinterpret_cast<PacketDropConnection*>(&p);
+        packet->header.command = PacketType::REQ_DROP_CONNECTION;
+        packet->header.version = 0;
+        packet->id             = id;
+        packet->header.total_size = sizeof(PacketDropConnection);
+
+        return p;
+    }
+
     static Packet create_login_packet(const char* username, const char* password)
     {
         Packet p;
