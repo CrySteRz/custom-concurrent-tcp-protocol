@@ -64,7 +64,7 @@ void create_connections_info_packet(uint8_t* buffer)
     p.header.command           = PacketType::RESP_CONNECTIONS_INFO;
     p.header.total_size        = sizeof(PacketConnectionsInfo);
     p.completed_packets        = g_state.completed_packets.size();
-    p.active_connection_count  = g_state.active_connections.size() + 1;
+    p.active_connection_count  = g_state.active_connections.size();
     p.pending_connection_count = g_state.pending_connections.size();
 }
 
@@ -75,6 +75,15 @@ void create_settings_resp_packet(uint8_t* buffer)
     p.compression_level = g_state.compression_level;
     p.header.total_size = sizeof(GetSettingsPacket);
 }
+
+void create_logged_in_packet(bool is_admin, uint8_t* buffer)
+{
+    auto& p = *reinterpret_cast<LoggedInPacket*>(buffer);
+    p.header.command    = PacketType::RESP_LOGGED_IN;
+    p.header.total_size = sizeof(LoggedInPacket);
+    p.is_admin          = is_admin;
+}
+
 
 void create_current_dir_packet(std::string& cwd, uint8_t* buffer)
 {
@@ -119,6 +128,7 @@ void send_sample_resp(std::shared_ptr<ConnectionBuffer> cb, uint8_t* buffer, Pac
     cb->connection->send_response_sync(buffer
         , sizeof(SamplePacket));
 }
+
 
 void send_resp_not_admin(std::shared_ptr<ConnectionBuffer> cb, uint8_t* buffer)
 {

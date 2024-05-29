@@ -10,10 +10,11 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
+bool is_admin = false;
+
 void print_help_message()
 {
-    printf("Available Commands:\n\n");
-    printf("status - Retrieves the current server status including CPU, memory usage, and uptime.\n\n");
+    printf("Commands:\n\n");
     printf("cwd - Gets the current working directory on the server.\n\n");
     printf("download <path> - Downloads a file from the specified path on the server.\n\n");
     printf("rm <path> - Removes a file or directory at the specified path.\n\n");
@@ -24,14 +25,21 @@ void print_help_message()
     printf("cp <source> <destination> - Copies a file or directory from source to destination.\n\n");
     printf("getid - Retrieves the unique identifier for the current session.\n\n");
     printf("logout - Logs out from the current session.\n");
-    printf("connections - Displays the number of active and pending connections as well as packets waiting to be processed.\n\n");
-    printf("ping - Sends a ping to the server to check connectivity.\n\n");
-    printf("get_settings - Retrieves current settings related to compression and file handling.\n\n");
-    printf("set <setting> - Updates settings based on the provided parameters.\n\n");
     printf("login <username> <password> - Logs into the server with the specified username and password.\n\n");
     printf("upload <file paths> - Sends one or more files to the server.\n\n");
     printf("ls - Lists files in the current directory.\n\n");
+    printf("ping - Sends a ping to the server to check connectivity.\n\n");
     printf("help - Displays this help message.\n");
+}
+
+void print_admin_help_message(){
+    printf("Admin Commands:\n\n");
+    printf("status - Retrieves the current server status including CPU, memory usage, and uptime.\n\n");
+    printf("get_settings - Retrieves current settings related to compression and file handling.\n\n");
+    printf("set <setting> - Updates settings based on the provided parameters.\n\n");
+    printf("connections - Displays the number of active and pending connections as well as packets waiting to be processed.\n\n");
+    printf("drop <id> - Drops the connection with the specified unique identifier.\n\n");
+    printf("clean - Cleans up the server by removing all files and directories.\n\n");
 }
 
 
@@ -258,6 +266,17 @@ public:
             print_help_message();
             return {};
         }
+        
+        if(strncmp(input, "admin_help", 10) == 0)
+        {
+            if (!is_admin)
+            {
+                printf("You are not an admin\n");
+            }
+            print_admin_help_message();
+            return {};
+        }
+
 
         if(strncmp(input, "getid", 5) == 0)
         {
@@ -278,6 +297,14 @@ public:
             auto packet = PacketController::create_connections_status_packet();
 
             return std::vector<Packet>{packet};
+        }
+
+        if(strncmp(input, "clean", 5) == 0)
+        {
+            auto packet = PacketController::create_clean_packet();
+
+            return std::vector<Packet>{packet};
+            
         }
 
         if(strncmp(input, "ping", 4) == 0)
@@ -339,6 +366,11 @@ public:
         {
             return std::vector<Packet>{PacketController::create_ls_packet()};
         }
+        // if (strncmp(input, "drop", 4) == 0)
+        // {
+        //     auto packet = PacketController::create_drop_packet(input + 5);
+        //     return std::vector<Packet>{packet};
+        // }
 
         return {};
     }
@@ -525,6 +557,14 @@ public:
             case PacketType::RESP_OK:
             {
                 printf("Command was succesful\n");
+            }
+            break;
+
+            case PacketType::RESP_LOGGED_IN:
+            {
+                const LoggedInPacket& resp
+                    = *reinterpret_cast<LoggedInPacket*>(buffer);
+                is_admin = resp.is_admin;
             }
             break;
 

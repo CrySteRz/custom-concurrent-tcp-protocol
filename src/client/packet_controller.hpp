@@ -188,6 +188,10 @@ public:
     {
         return create_sample_packet(PacketType::REQ_CONNECTIONS_INFO);
     }
+    static Packet create_clean_packet()
+    {
+        return create_sample_packet(PacketType::REQ_CLEAN);
+    }
 
     static Packet create_get_settings_packet()
     {

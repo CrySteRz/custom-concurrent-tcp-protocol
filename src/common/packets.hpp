@@ -31,6 +31,12 @@ struct GetSettingsPacket
     PacketHeader header;
     uint8_t      compression_level;
 };
+struct LoggedInPacket
+{
+    PacketHeader header;
+    bool         is_admin;
+};
+
 
 struct SamplePacket
 {
@@ -105,6 +111,7 @@ struct PacketLogin
     char         password[64];
 };
 
+
 struct PacketDownloadFile
 {
     PacketHeader header;
@@ -148,4 +155,8 @@ struct PacketCopyFile
     char         first_path[512];
     char         second_path[512];
 };
+
+
+
+
 

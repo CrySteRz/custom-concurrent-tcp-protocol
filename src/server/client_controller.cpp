@@ -363,8 +363,11 @@ void ClientController::initialize()
                     std::cout << "An admin connected!\n";
                     g_state.b_admin_connected.exchange(false);
                     cb->connection->is_admin = true;
+                    
                 }
-                send_sample_resp(cb, tls_buffer, PacketType::RESP_OK);
+                create_logged_in_packet(cb->connection->is_admin, tls_buffer);
+                cb->connection->send_response_sync(tls_buffer
+                , sizeof(LoggedInPacket));
             }
             else
             {
@@ -446,6 +449,29 @@ void ClientController::initialize()
             }
         };
 
+    handlers[(int)PacketType::REQ_CLEAN]
+        = [](std::shared_ptr<ConnectionBuffer> cb)
+        {
+            if(!cb->connection->is_admin)
+            {
+                send_resp_not_admin(cb, tls_buffer);
+                return;
+            }
+            std::string user_dir = "./tmp/";
+            for(const auto& entry : std::filesystem::directory_iterator(user_dir))
+            {
+                if(entry.is_directory())
+                {
+                    std::string user_dir_path = entry.path().string();
+                    if(!remove_directory(user_dir_path.c_str()))
+                    {
+                        send_sample_resp(cb, tls_buffer, PacketType::RESP_IO_ERROR);
+                        return;
+                    }
+                }
+            }
+            send_sample_resp(cb, tls_buffer, PacketType::RESP_OK);
+        };
 }
 
 void ClientController::process_packet(std::shared_ptr<ConnectionBuffer> cb)
