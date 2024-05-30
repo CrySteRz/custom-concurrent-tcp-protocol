@@ -61,8 +61,9 @@ void create_chunk_info_packet(uint8_t* buffer, uint64_t chunk_count, char* file_
 void create_connections_info_packet(uint8_t* buffer)
 {
     auto& p = *reinterpret_cast<PacketConnectionsInfo*>(buffer);
-    p.header.command           = PacketType::RESP_CONNECTIONS_INFO;
-    p.header.total_size        = sizeof(PacketConnectionsInfo);
+    p.header.command    = PacketType::RESP_CONNECTIONS_INFO;
+    p.header.total_size = sizeof(PacketConnectionsInfo);
+    std::cout << g_state.active_connections.size() << " " << g_state.pending_connections.size() << "\n";
     p.completed_packets        = g_state.completed_packets.size();
     p.active_connection_count  = g_state.active_connections.size();
     p.pending_connection_count = g_state.pending_connections.size();

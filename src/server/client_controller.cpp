@@ -361,7 +361,7 @@ void ClientController::initialize()
                         return;
                     }
                     std::cout << "An admin connected!\n";
-                    g_state.b_admin_connected.exchange(false);
+                    g_state.b_admin_connected.exchange(true);
                     cb->connection->is_admin = true;
                     
                 }
@@ -483,6 +483,8 @@ void ClientController::process_packet(std::shared_ptr<ConnectionBuffer> cb)
         send_resp_unauthorized(cb, tls_buffer);
         return;
     }
+
+    std::cout << "admin connected: " << g_state.b_admin_connected.load() << "\n";
 
     handlers[(int)packet_type](cb);
 }
