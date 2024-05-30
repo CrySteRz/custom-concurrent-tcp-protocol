@@ -19,7 +19,7 @@ void print_help_message()
     printf("download <path> - Downloads a file from the specified path on the server.\n\n");
     printf("rm <path> - Removes a file or directory at the specified path.\n\n");
     printf("mkdir <path> - Creates a new directory at the specified path.\n\n");
-    printf("compress <archive name> <options> - Compresses files into the specified archive format and level. Options include --level [FASTEST|FAST|NORMAL|GOOD|BEST] and --format [GZIP|XZ|LZMA|LZ4|ZIP].\n\n");
+    printf("compress <archive name> <options> - Compresses files into the specified archive format and level. Options include --level [FASTEST|FAST|NORMAL|GOOD|BEST] and --format [ZSTD|GZIP|XZ|LZMA|LZ4|ZIP].\n\n");
     printf("cd <path> - Changes the current directory to the specified path.\n\n");
     printf("mv <source> <destination> - Moves or renames a file or directory from source to destination.\n\n");
     printf("cp <source> <destination> - Copies a file or directory from source to destination.\n\n");
